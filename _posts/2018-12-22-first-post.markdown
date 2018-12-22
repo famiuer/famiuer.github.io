@@ -7,4 +7,4 @@ categories: blog
 
 Hello, everyone!
 
-<img src="/assets/1.jpg"/>
+<img src="https://raw.githubusercontent.com/famiuer/famiuer.github.io/master/_site/assets/1.jpg"/>
