@@ -28,14 +28,14 @@ theme: minima
 plugins:
   - jekyll-feed
 
-defaults:
-  -
-    scope:
-      path: ""
-      type: "post"
-    values:
-      layout: "post"
-      image: true  
+#defaults:
+ # -
+  #  scope:
+#      path: ""
+#      type: "post"
+#    values:
+#      layout: "post"
+#      image: true  
 
 
 
