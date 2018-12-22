@@ -7,3 +7,4 @@ categories: blog
 
 Hello, everyone!
 
+<img src="/assets/1.jpg"/>
