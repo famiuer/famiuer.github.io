@@ -4,12 +4,20 @@ title: About
 permalink: /about/
 ---
 
- I am working on building this blog. <br>
-This is the base Jekyll theme. You can find out more info about customizing your Jekyll theme, as well as basic Jekyll usage documentation at [jekyllrb.com](https://jekyllrb.com/)
+I am a coastal engineer in China. This website is to record my experiences and ideas. You may follow my social network.
+I am working on building this blog. <br>
 
-You can find the source code for Minima at GitHub:
-[jekyll][jekyll-organization] /
-[minima](https://github.com/jekyll/minima)
+
+[Twitter][https://twitter.com/famiuer] 
+
+[GitHub](https://github.com/famieur)
+
+[Instagram](https://www.instagram.com/famiuer/)
+
+[Linkedin](https://www.linkedin.com/in/gsamuelchen/)
+
+
+
 
 You can find the source code for Jekyll at GitHub:
 [jekyll][jekyll-organization] /
