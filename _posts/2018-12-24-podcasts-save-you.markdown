@@ -5,6 +5,8 @@ date:   2018-12-24 20:04:00 +0800
 categories: blog
 ---
 ![My pocket casts screenshot](/assets/pocketcasts.jpg)
+
+
 In my sophomore year of college, I got an iPod Shuffle and hanppened to open the podcast page in iTunes. I didn't know "podcast" mean while I downloaded several episodes and listened to them. Not very impressed. I just leave them alone.
 
 At 2013, Zhihu, a copycat of Qoura, was still a  not well-recognized but pretty friendly online community. On it, I saw the [IT公论](https://itgonglun.com/) (IT Public Discussion) and began my journey of podcast. I listened to the IPN podcasts and subscribed to more podcasts.
