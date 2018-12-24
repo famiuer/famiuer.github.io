@@ -4,7 +4,7 @@ title:  "Podcasts save you"
 date:   2018-12-24 20:04:00 +0800
 categories: blog
 ---
-![My pocket casts screenshot](/assets/pocketcasts.jpg)
+
 
 
 In my sophomore year of college, I got an iPod Shuffle and hanppened to open the podcast page in iTunes. I didn't know "podcast" mean while I downloaded several episodes and listened to them. Not very impressed. I just leave them alone.
@@ -49,3 +49,5 @@ I recommend following podcasts.
 
 
 There are many great podcasts.
+
+![My pocket casts screenshot](/assets/pocketcasts.jpg)
