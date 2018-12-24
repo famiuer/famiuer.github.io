@@ -11,7 +11,7 @@ In my sophomore year of college, I got an iPod Shuffle and happened to open the 
 
 At 2013, Zhihu, a copycat of Quora, was still a  not well-recognized but pretty friendly online community. On it, I saw the [IT公论](https://itgonglun.com/) (IT Public Discussion) and began my journey of podcasts. I listened to the IPN podcasts and subscribed to more podcasts.
 
-A long time passed, I can't remember how much time I have spent on podcasts. It's really fun. I highly recommend the (Pocket Casts)[https://www.pocketcasts.com/] or (Castro)[http://supertop.co/castro/]. These are great apps and give you more freedom compared with the traditional platform as Chinese Lizhi or Ximalaya.
+A long time passed, I can't remember how much time I have spent on podcasts. It's really fun. I highly recommend the [Pocket Casts](https://www.pocketcasts.com/) or [Castro](http://supertop.co/castro/). These are great apps and give you more freedom compared with the traditional platform as Chinese Lizhi or Ximalaya.
 
 I recommend following podcasts. 
 
