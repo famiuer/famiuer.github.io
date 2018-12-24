@@ -8,13 +8,13 @@ I am a coastal engineer in China. This website is to record my experiences and i
 I am working on building this blog. <br>
 
 
-[Twitter](https://twitter.com/famiuer)
+*[Twitter](https://twitter.com/famiuer)
 
-[GitHub](https://github.com/famieur)
+*[GitHub](https://github.com/famieur)
 
-[Instagram](https://www.instagram.com/famiuer/)
+*[Instagram](https://www.instagram.com/famiuer/)
 
-[Linkedin](https://www.linkedin.com/in/gsamuelchen/)
+*[Linkedin](https://www.linkedin.com/in/gsamuelchen/)
 
 
 
