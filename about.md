@@ -4,7 +4,7 @@ title: About
 permalink: /about/
 ---
 
-I am a coastal engineer in China. This website is to record my experiences and ideas. You may follow my social network.
+I am a coastal engineer in China. This website is to record my experiences and ideas. You may follow my social networks.
 I am working on building this blog. <br>
 
 
