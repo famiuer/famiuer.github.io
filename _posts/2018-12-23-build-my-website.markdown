@@ -5,7 +5,7 @@ date:   2018-12-23 10:44:00 +0800
 categories: blog
 ---
 
-I bought the domain name on Godaddy in April and tried to deploy wordpress initially and then jekyell on a VPS, but the speed is quite unstable and I abandoned. Eventually I use github pages as a solution. <br>
+I bought the domain name on Godaddy in April and tried to deploy wordpress initially and then jekyll on a VPS, but the speed is quite unstable and I abandoned. Eventually I use github pages as a solution. <br>
 
 Why building a website or a blog when you can use multiple services instead? I think maybe because I can do it. It is fun to build a blog from scratch and learn from it. Besides, nobody chech your content and censor any words or topic. The price of freedom worths.<br>
 
