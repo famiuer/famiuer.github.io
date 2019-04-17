@@ -5,9 +5,9 @@ date:   2019-04-17 14:24:00 +0800
 categories: blog
 ---
 
-Today a colleague asked me if I was logging on a workstation remotely when I was not. She got the answer and asked others. I thought there must be a tool or method to check the remote login status without logging in by remote desktop.
+Today a colleague asked me if I was logging on a workstation remotely when I was not. She got the answer and asked others. I thought there must be a tool or method to check the remote login status without logging in via remote desktop.
 
-I searched and found that PowerShell and _quser.exe_ can achieve the purpose within a domain.
+I searched and found that using PowerShell and _quser.exe_ can achieve the purpose within a company domain.
 
 Open PowerShell and run following commands after replacing the COMPUTERNAME
 
