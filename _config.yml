@@ -24,10 +24,9 @@ github_username:  famieur
 
 # Build settings
 markdown: kramdown
-remote_theme: "mmistakes/minimal-mistakes@4.16.0"
+theme: minima
 plugins:
   - jekyll-feed
-  - jekyll-include-cache
 
 #defaults:
  # -
