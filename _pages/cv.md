@@ -11,9 +11,10 @@ redirect_from:
 
 Education
 ======
-* B.S. in GitHub, GitHub University, 2012
-* M.S. in Jekyll, GitHub University, 2014
-* Ph.D in Version Control Theory, GitHub University, 2018 (expected)
+* B.S. in Harbour, Waterway & Coastal Engineering , Ocean University of China, 2012
+* M.E. in Harbour, Coastal & Offshore Engineering , Ocean University of China, 2015
+* PG Diploma in Offshore Wind Energy and the Environment, University of Hull, 2023 (expected)
+
 
 Work experience
 ======
