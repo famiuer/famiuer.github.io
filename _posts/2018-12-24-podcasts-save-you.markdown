@@ -6,7 +6,7 @@ categories: blog
 
 
 
-In my sophomore year of college, I got an iPod Shuffle and happened to open the podcast page in iTunes. I didn't know what "podcast" mean but I finally downloaded several episodes and listened to them. Not very impressed. I just leave them alone.
+In my second year of college, I got an iPod Shuffle and happened to open the podcast page in iTunes. I didn't know what "podcast" mean but I finally downloaded several episodes and listened to them. Not very impressed. I just leave them alone.
 
 At 2013, Zhihu, a copycat of Quora, was still a  not well-recognized but pretty friendly online community. On it, I saw the [IT公论](https://itgonglun.com/) (IT Public Discussion) and began my journey of podcasts. I listened to the IPN podcasts and subscribed to more podcasts.
 
