@@ -1,5 +1,5 @@
 ---
-layout: post
+
 title:  "DHI tools Introduction"
 date:   2019-04-18 10:37:00 +0800
 categories: blog

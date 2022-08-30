@@ -1,5 +1,4 @@
 ---
-layout: post
 title:  "Podcasts save you"
 date:   2018-12-24 20:04:00 +0800
 categories: blog

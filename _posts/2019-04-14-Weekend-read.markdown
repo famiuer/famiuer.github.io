@@ -1,5 +1,5 @@
 ---
-layout: post
+
 title:  "Weekend Read"
 date:   2019-04-14 22:48:00 +0800
 categories: blog

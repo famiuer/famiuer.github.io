@@ -1,5 +1,4 @@
 ---
-layout: post
 title:  "Remote Query User"
 date:   2019-04-17 14:24:00 +0800
 categories: blog
