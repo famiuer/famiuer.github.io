@@ -20,7 +20,7 @@ Work experience
 ======
 * 2015 - 2022: Coastal Engineer, DHI China
   * Coastal hydrodynamic team lead, Offshore wind business coordinator
-  * Consulting: Hydrodynamic and waves related projects, analysis in MATLAB & Python
+  * Consulting: hydrodynamic and waves related projects, analysis in MATLAB & Python
   * In-house software training: over 200-hour training of MIKE software suite
   * Internal Research & Development
   * Business development and coordination with DHI Group colleagues 
@@ -40,11 +40,11 @@ Skills
   * Mandarin Chinese: Native
   * English: Good
 
-Publications
+<!-- Publications
 ======
   <ul>{% for post in site.publications %}
     {% include archive-single-cv.html %}
-  {% endfor %}</ul>
+  {% endfor %}</ul> -->
 <!--   
 Talks
 ======
