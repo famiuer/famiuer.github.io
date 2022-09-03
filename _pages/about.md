@@ -19,7 +19,7 @@ My research and personal interests include:
 * Computer Programming
 * Indoor cycling
 
-Just drop me an email if you would like to talk.  :smile:  
+Just drop me an email if you would like to talk.  😀 
 
 This site is hosted on [GitHub Pages](https://docs.github.com/en/pages/getting-started-with-github-pages/about-github-pages){:target="_blank"}. 
 
