@@ -10,7 +10,7 @@ redirect_from:
 
 Geng Chen (Chinese, 陈更) is currently a post-graduate student at the University of Hull.
 
-I was a coastal engineer in DHI China from 2015 to 2022. He returned to university to pursue his PhD at [Aura CDT](https://auracdt.hull.ac.uk/){:target="_blank"} in offshore wind energy and the environment.
+Hi, there! I was a coastal engineer in DHI China from 2015 to 2022.  I returned to university to pursue my PhD at [Aura CDT](https://auracdt.hull.ac.uk/){:target="_blank"} in offshore wind energy and the environment.
 
 My research and personal interests include:
 
