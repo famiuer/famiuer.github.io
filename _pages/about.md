@@ -8,16 +8,17 @@ redirect_from:
   - /about.html
 ---
 
-Geng Chen (Chinese, 陈更) is currently a post-graduate student at the University of Hull.
+Geng Chen (Chinese, 陈更) is currently a Aura CDT PhD student at the Durham University.
 
 Hi, there! I was a coastal engineer in DHI China from 2015 to 2022.  I returned to university to pursue my PhD at [Aura CDT](https://auracdt.hull.ac.uk/){:target="_blank"} in offshore wind energy and the environment.
 
 My research and personal interests include:
 
 * Numerical hydrodynamic and wave simulation
+* Fluid-Structure Interation
 * Statistics, like Extreme Value Analysis
 * Computer Programming
-* Indoor cycling
+
 
 Just drop me an email if you would like to talk.  😀 
 

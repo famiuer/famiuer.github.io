@@ -13,7 +13,8 @@ Education
 ======
 * B.S. in Harbour, Waterway & Coastal Engineering , Ocean University of China, 2012
 * M.E. in Harbour, Coastal & Offshore Engineering , Ocean University of China, 2015
-* PG Diploma in Offshore Wind Energy and the Environment, University of Hull, 2023 (expected)
+* PG Diploma in Offshore Wind Energy and the Environment, University of Hull, 2023
+* PhD student in engineering, Durham University, 2023 -
 
 
 Work experience
