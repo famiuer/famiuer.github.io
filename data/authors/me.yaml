@@ -1,0 +1,96 @@
+schema: hugoblox/author/v1
+slug: me
+is_owner: true
+name:
+  display: Geng Chen
+  given: Geng
+  family: Chen
+  alternate: 陈更
+  pronunciation: ''
+  pronouns: he/him
+postnominals: []
+status:
+  icon: "🌊"
+role: PhD Student in Engineering
+bio: |
+  Geng Chen is a PhD student at Durham University. His research focuses on offshore
+  wind energy and the environment, with interests in hydrodynamic and wave simulation,
+  fluid-structure interaction, and data-driven engineering analysis.
+
+affiliations:
+  - name: Durham University
+    url: https://www.durham.ac.uk/
+
+links:
+  - icon: at-symbol
+    url: mailto:famiuer@hotmail.com
+    label: E-mail
+  - icon: brands/github
+    url: https://github.com/famiuer
+  - icon: brands/linkedin
+    url: https://www.linkedin.com/in/gsamuelchen/
+  - icon: brands/x
+    url: https://x.com/SamChen65535
+
+interests:
+  - Numerical hydrodynamic and wave simulation
+  - Fluid-Structure Interaction
+  - Extreme Value Analysis
+  - Scientific computing
+
+education:
+  - degree: PhD Engineering
+    institution: Durham University
+    start: 2023-09-01
+  - degree: PG Diploma Offshore Wind Energy and the Environment
+    institution: University of Hull
+    start: 2022-09-01
+    end: 2023-09-01
+  - degree: ME Harbour, Coastal & Offshore Engineering
+    institution: Ocean University of China
+    end: 2015-06-30
+  - degree: BS Harbour, Waterway & Coastal Engineering
+    institution: Ocean University of China
+    end: 2012-06-30
+
+experience:
+  - role: Coastal Engineer
+    org: DHI China
+    start: 2015-01-01
+    end: 2022-12-31
+    summary: |
+      Coastal hydrodynamic team lead and offshore wind business coordinator.
+      Worked on numerical analysis projects in MATLAB and Python, internal R&D,
+      and software training for the MIKE suite.
+
+skills:
+  - name: Programming & Tools
+    items:
+      - label: Python
+        level: 5
+      - label: MATLAB
+        level: 5
+      - label: FORTRAN
+        level: 3
+      - label: GIS/CAD
+        level: 4
+      - label: Linux & Git
+        level: 4
+  - name: Engineering
+    items:
+      - label: Coastal Hydrodynamics
+        level: 5
+      - label: Offshore Wind Analysis
+        level: 4
+      - label: Extreme Value Statistics
+        level: 4
+
+languages:
+  - name: Mandarin Chinese
+    level: 5
+    label: Native
+  - name: English
+    level: 4
+    label: Professional
+
+awards: []

@@ -1,0 +1,86 @@
+hugoblox:
+  schema: "2.0"
+
+  identity:
+    name: "Geng Chen"
+    organization: "Durham University"
+    type: person
+    tagline: "PhD Student in Offshore Wind Energy"
+    description: "Personal website of Geng Chen, PhD student at Durham University focused on offshore wind energy and the environment."
+    social:
+      twitter: "SamChen65535"
+
+  theme:
+    mode: system
+    pack: "default"
+
+  typography:
+    font: "sans"
+    size: "md"
+
+  layout:
+    radius: "md"
+    spacing: "comfortable"
+    avatar_shape: circle
+
+  header:
+    enable: true
+    style: navbar
+    sticky: true
+    align: center
+    search: true
+    theme_toggle: true
+    theme_picker: true
+    language_switcher: false
+
+  footer:
+    style: minimal
+    language_switcher: false
+    text: ""
+
+  copyright:
+    notice: "© {year} {name}."
+
+  seo:
+    title: ""
+    ai:
+      allow:
+        - /
+      disallow: []
+      note: "Public profile and academic content."
+      contact: ""
+
+  content:
+    math:
+      enable: false
+    toc:
+      enable: true
+    reading_time:
+      enable: true
+    citations:
+      style: apa
+
+  search:
+    enable: true
+
+  comments:
+    enable: false
+    provider: ""
+
+  analytics:
+    google:
+      measurement_id: ""
+
+  verification:
+    google: ""
+
+  repository:
+    enable: true
+    url: "https://github.com/famiuer/famiuer.github.io"
+    branch: master
+    content_dir: content
+
+  locale:
+    date_format: "Jan 2, 2006"
+    time_format: "3:04 PM"
+    address_format: en-gb
