@@ -62,6 +62,8 @@ hugoblox:
 
   search:
     enable: true
+    suggestions: []
+    quick_actions: []
 
   comments:
     enable: false

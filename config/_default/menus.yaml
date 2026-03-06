@@ -5,9 +5,6 @@ main:
   - name: CV
     url: /cv/
     weight: 20
-  - name: Publications
-    url: /publications/
-    weight: 30
   - name: Blog
     url: /blog/
-    weight: 40
+    weight: 30

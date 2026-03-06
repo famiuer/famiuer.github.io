@@ -47,15 +47,15 @@ sections:
     design:
       columns: '1'
 
-  - block: collection
-    id: papers
-    content:
-      title: Publications
-      filters:
-        folders:
-          - publications
-    design:
-      view: citation
+  # - block: collection
+  #   id: papers
+  #   content:
+  #     title: Publications
+  #     filters:
+  #       folders:
+  #         - publications
+  #   design:
+  #     view: citation
 
   - block: collection
     id: news
