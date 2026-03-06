@@ -1,6 +1,6 @@
 ---
-title: Website refresh
-summary: Quick update: the site has a new look, and more posts are coming.
+title: "Website refresh"
+summary: "Quick update: the site has a new look, and more posts are coming."
 date: 2026-03-06T17:22:32+00:00
 authors:
   - me
