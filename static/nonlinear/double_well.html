@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Double-Well Potential Simulation</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --secondary: #475569;
+            --bg: #f8fafc;
+            --panel: #ffffff;
+            --danger: #ef4444;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: #1e293b;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            margin-bottom: 0.5rem;
+            font-size: 1.5rem;
+            color: #0f172a;
+        }
+
+        .subtitle {
+            font-size: 0.9rem;
+            color: var(--secondary);
+            margin-bottom: 1.5rem;
+            max-width: 600px;
+            text-align: center;
+        }
+
+        .main-container {
+            display: flex;
+            flex-direction: row;
+            gap: 20px;
+            background: var(--panel);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .canvas-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        canvas {
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            background-color: #fff;
+            cursor: crosshair;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            min-width: 250px;
+            padding: 10px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        label {
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+        }
+
+        .value-display {
+            font-family: 'Courier New', monospace;
+            color: var(--primary);
+        }
+
+        button {
+            padding: 10px 16px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background-color: #1d4ed8;
+        }
+
+        button.reset {
+            background-color: var(--secondary);
+        }
+
+        button.reset:hover {
+            background-color: #334155;
+        }
+
+        .math-note {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f1f5f9;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            border-left: 4px solid var(--primary);
+        }
+
+        .legend {
+            display: flex;
+            gap: 15px;
+            font-size: 0.8rem;
+            margin-top: 5px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+    </style>
+</head>
+<body>
+
+    <h1>Particle in a Double-Well Potential</h1>
+    <div class="subtitle">
+        Visualizing the conservative system from Example 6.5.2: $\ddot{x} = x - x^3$.<br>
+        Top graph: Phase Plane ($y$ vs $x$). Bottom graph: Potential Energy Well ($V$ vs $x$).
+    </div>
+
+    <div class="main-container">
+        <div class="canvas-group">
+            <canvas id="phaseCanvas" width="500" height="300"></canvas>
+            
+            <canvas id="energyCanvas" width="500" height="200"></canvas>
+            
+            <div class="legend">
+                <div class="legend-item"><span class="dot" style="background:#2563eb"></span>Active Trajectory</div>
+                <div class="legend-item"><span class="dot" style="background:#ef4444"></span>Particle</div>
+                <div class="legend-item"><span class="dot" style="background:#94a3b8"></span>Background Flows</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label for="energySlider">
+                    Total Energy (E)
+                    <span id="energyVal" class="value-display">-0.10</span>
+                </label>
+                <input type="range" id="energySlider" min="-0.24" max="1.0" step="0.01" value="-0.10">
+                <small style="color: #64748b">Min: -0.25 (Centers), 0.0 (Saddle)</small>
+            </div>
+
+            <div class="control-group" style="flex-direction: row; gap: 10px;">
+                <button id="playBtn">Pause</button>
+                <button id="resetBtn" class="reset">Reset</button>
+            </div>
+
+            <div class="math-note">
+                <strong>System Equations:</strong><br>
+                Potential: $V(x) = -\frac{1}{2}x^2 + \frac{1}{4}x^4$<br>
+                Energy: $E = \frac{1}{2}y^2 + V(x)$<br>
+                Dynamics: $\dot{x} = y$, $\dot{y} = x - x^3$
+            </div>
+            
+            <div class="math-note">
+                <strong>Physics Note:</strong><br>
+                Notice how the particle oscillates within one well when $E < 0$, follows the homoclinic orbit (figure-8) at $E \approx 0$, and encircles both wells when $E > 0$.
+            </div>
+        </div>
+    </div>
+
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <script>
+        // --- Configuration ---
+        const phaseCanvas = document.getElementById('phaseCanvas');
+        const phaseCtx = phaseCanvas.getContext('2d');
+        const energyCanvas = document.getElementById('energyCanvas');
+        const energyCtx = energyCanvas.getContext('2d');
+        
+        // Simulation Parameters
+        let state = { x: 1.0, y: 0.0 }; // Current particle state
+        let time = 0;
+        let isRunning = true;
+        let currentEnergy = -0.10;
+        
+        // Scale factors
+        // X axis: -2.5 to 2.5
+        // Y axis: -2.0 to 2.0
+        const scaleX = phaseCanvas.width / 5;
+        const scaleY = phaseCanvas.height / 4;
+        const offsetX = phaseCanvas.width / 2;
+        const offsetY = phaseCanvas.height / 2;
+
+        const energyScaleY = 100; // Pixels per energy unit
+        const energyOffsetY = 150; // Vertical center for energy graph
+
+        // Physics Constants
+        const dt = 0.015; // Time step
+
+        // --- Physics Functions ---
+
+        // Potential Function V(x)
+        function V(x) {
+            return -0.5 * x * x + 0.25 * Math.pow(x, 4);
+        }
+
+        // Equations of Motion
+        // dx/dt = y
+        // dy/dt = x - x^3
+        function getDerivatives(s) {
+            return {
+                dx: s.y,
+                dy: s.x - Math.pow(s.x, 3)
+            };
+        }
+
+        // RK4 Integrator
+        function rk4Step(s, dt) {
+            let k1 = getDerivatives(s);
+            
+            let s2 = { x: s.x + k1.dx * dt * 0.5, y: s.y + k1.dy * dt * 0.5 };
+            let k2 = getDerivatives(s2);
+            
+            let s3 = { x: s.x + k2.dx * dt * 0.5, y: s.y + k2.dy * dt * 0.5 };
+            let k3 = getDerivatives(s3);
+            
+            let s4 = { x: s.x + k3.dx * dt, y: s.y + k3.dy * dt };
+            let k4 = getDerivatives(s4);
+
+            return {
+                x: s.x + (k1.dx + 2*k2.dx + 2*k3.dx + k4.dx) * dt / 6,
+                y: s.y + (k1.dy + 2*k2.dy + 2*k3.dy + k4.dy) * dt / 6
+            };
+        }
+
+        // --- Helpers ---
+
+        function toScreen(x, y) {
+            return {
+                x: offsetX + x * scaleX,
+                y: offsetY - y * scaleY
+            };
+        }
+
+        function toEnergyScreen(x, e) {
+            return {
+                x: offsetX + x * scaleX,
+                y: energyOffsetY - e * energyScaleY
+            };
+        }
+
+        // Find a valid starting position (x, 0) for a given energy E
+        // E = 0 + V(x) => V(x) = E
+        function findStartPos(E) {
+            // We know V(x) looks like a W.
+            // If E < 0, roots are around 1 and -1.
+            // If E > 0, roots are further out.
+            // Simple numerical search or analytical approx is fine.
+            
+            // We want the outer positive root usually for consistency
+            // V(x) - E = 0 => 0.25x^4 - 0.5x^2 - E = 0
+            // Let u = x^2. 0.25u^2 - 0.5u - E = 0
+            // u = [0.5 +/- sqrt(0.25 - 4*0.25*(-E))] / 0.5
+            // u = [0.5 + sqrt(0.25 + E)] / 0.5  (Take positive branch for outer well)
+            // u = 1 + 2*sqrt(0.25 + E)
+            
+            // However, if E < 0 (inside wells), we might want the inner root?
+            // Actually, for E < 0, the equation still holds. 
+            // V(-1) = -0.25. If E < -0.25, no solution.
+            
+            let discriminant = 0.25 + E;
+            if (discriminant < 0) return {x: 1, y:0}; // Should not happen with slider limits
+
+            let u = 1 + Math.sqrt(4 * discriminant); // Solution for x^2
+            let x = Math.sqrt(u);
+            return { x: x, y: 0 };
+        }
+
+        // --- Drawing ---
+
+        function drawAxes(ctx, width, height, yPosOverride = null) {
+            ctx.strokeStyle = '#cbd5e1';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            
+            // X Axis
+            let yAxisPos = yPosOverride !== null ? yPosOverride : height/2;
+            ctx.moveTo(0, yAxisPos);
+            ctx.lineTo(width, yAxisPos);
+            
+            // Y Axis
+            ctx.moveTo(width/2, 0);
+            ctx.lineTo(width/2, height);
+            ctx.stroke();
+
+            // Labels
+            ctx.fillStyle = '#64748b';
+            ctx.font = '12px Arial';
+            ctx.fillText('x', width - 15, yAxisPos + 15);
+            if(yPosOverride === null) ctx.fillText('y', width/2 + 5, 15);
+            else ctx.fillText('E', width/2 + 5, 15);
+        }
+
+        function drawStaticContours() {
+            // Draw a few faint background trajectories for context
+            const energies = [-0.15, 0.0, 0.2, 0.5];
+            phaseCtx.lineWidth = 1;
+            
+            energies.forEach(e => {
+                phaseCtx.strokeStyle = e === 0 ? '#94a3b8' : '#e2e8f0'; // Darker for separatrix
+                if (e === 0) phaseCtx.setLineDash([5, 3]);
+                else phaseCtx.setLineDash([]);
+
+                drawOrbit(e, false); // false = don't animate, just draw
+            });
+            phaseCtx.setLineDash([]);
+        }
+
+        function drawOrbit(E, isActive) {
+            // To draw the full orbit, we simulate one full cycle (or enough steps)
+            // and connect the dots.
+            
+            // For E < 0, we have two wells. We need to draw both.
+            // Right Well
+            let start = findStartPos(E);
+            if(!start) return;
+
+            tracePath(start, E, isActive);
+
+            // Left Well (by symmetry, just flip x)
+            if (E < 0) {
+                 tracePath({x: -start.x, y: 0}, E, isActive);
+            }
+        }
+
+        function tracePath(startP, E, isActive) {
+            let simP = { ...startP };
+            phaseCtx.beginPath();
+            let screenP = toScreen(simP.x, simP.y);
+            phaseCtx.moveTo(screenP.x, screenP.y);
+
+            // Integrate for a fixed amount of steps to close the loop
+            // Period varies, but 1000 steps is usually enough for visual closure here
+            let steps = 1000;
+            // If E is close to 0 (homoclinic), period goes to infinity. We limit steps.
+            
+            for(let i=0; i<steps; i++) {
+                simP = rk4Step(simP, dt * 2); // Faster draw step
+                screenP = toScreen(simP.x, simP.y);
+                phaseCtx.lineTo(screenP.x, screenP.y);
+                
+                // Break if we loop back (simple check)
+                if (Math.abs(simP.x - startP.x) < 0.01 && Math.abs(simP.y - startP.y) < 0.01 && i > 10) break;
+            }
+            
+            if (isActive) {
+                phaseCtx.strokeStyle = '#2563eb';
+                phaseCtx.lineWidth = 2;
+            }
+            phaseCtx.stroke();
+        }
+
+        function drawPotentialCurve() {
+            energyCtx.beginPath();
+            energyCtx.strokeStyle = '#334155';
+            energyCtx.lineWidth = 2;
+
+            for (let px = 0; px < energyCanvas.width; px++) {
+                let simX = (px - offsetX) / scaleX;
+                let simV = V(simX);
+                let py = energyOffsetY - simV * energyScaleY;
+                
+                if (px === 0) energyCtx.moveTo(px, py);
+                else energyCtx.lineTo(px, py);
+            }
+            energyCtx.stroke();
+        }
+
+        function drawEnergyLine() {
+            energyCtx.beginPath();
+            energyCtx.strokeStyle = '#2563eb';
+            energyCtx.lineWidth = 1;
+            energyCtx.setLineDash([5, 5]);
+            let py = energyOffsetY - currentEnergy * energyScaleY;
+            energyCtx.moveTo(0, py);
+            energyCtx.lineTo(energyCanvas.width, py);
+            energyCtx.stroke();
+            energyCtx.setLineDash([]);
+            
+            energyCtx.fillStyle = '#2563eb';
+            energyCtx.fillText(`E = ${currentEnergy.toFixed(2)}`, 10, py - 5);
+        }
+
+        // --- Main Loop ---
+
+        function update() {
+            if (isRunning) {
+                state = rk4Step(state, dt);
+            }
+            draw();
+            requestAnimationFrame(update);
+        }
+
+        function draw() {
+            // 1. Clear Canvases
+            phaseCtx.clearRect(0, 0, phaseCanvas.width, phaseCanvas.height);
+            energyCtx.clearRect(0, 0, energyCanvas.width, energyCanvas.height);
+
+            // 2. Draw Phase Portrait
+            drawAxes(phaseCtx, phaseCanvas.width, phaseCanvas.height);
+            drawStaticContours();
+            drawOrbit(currentEnergy, true); // Active Orbit
+
+            // Draw Particle on Phase Plane
+            let pScreen = toScreen(state.x, state.y);
+            phaseCtx.fillStyle = '#ef4444';
+            phaseCtx.beginPath();
+            phaseCtx.arc(pScreen.x, pScreen.y, 6, 0, Math.PI * 2);
+            phaseCtx.fill();
+
+            // 3. Draw Potential Well
+            drawAxes(energyCtx, energyCanvas.width, energyCanvas.height, energyOffsetY);
+            drawPotentialCurve();
+            drawEnergyLine();
+
+            // Draw Particle on Energy Graph
+            // It sits on the potential curve at x, with height E (total energy) 
+            // *Technically* it sits on V(x), but to show conservation of energy, 
+            // usually we visualize the particle sliding on the V(x) line 
+            // OR we show the exchange between KE and PE.
+            // Let's show the particle on the curve V(x).
+            let potVal = V(state.x);
+            let eScreen = toEnergyScreen(state.x, potVal);
+            
+            // Draw potential energy bead
+            energyCtx.fillStyle = '#ef4444';
+            energyCtx.beginPath();
+            energyCtx.arc(eScreen.x, eScreen.y, 6, 0, Math.PI * 2);
+            energyCtx.fill();
+            
+            // Draw Kinetic Energy bar (Difference between E line and V curve)
+            let totalEScreenY = energyOffsetY - currentEnergy * energyScaleY;
+            energyCtx.beginPath();
+            energyCtx.strokeStyle = 'rgba(239, 68, 68, 0.5)';
+            energyCtx.lineWidth = 2;
+            energyCtx.moveTo(eScreen.x, eScreen.y); // From V(x)
+            energyCtx.lineTo(eScreen.x, totalEScreenY); // To E
+            energyCtx.stroke();
+        }
+
+        // --- Interaction ---
+
+        const slider = document.getElementById('energySlider');
+        const valDisplay = document.getElementById('energyVal');
+        const playBtn = document.getElementById('playBtn');
+        const resetBtn = document.getElementById('resetBtn');
+
+        function resetSimulation() {
+            currentEnergy = parseFloat(slider.value);
+            // Reset position to the turning point (max amplitude) of the right well
+            state = findStartPos(currentEnergy);
+        }
+
+        slider.addEventListener('input', (e) => {
+            currentEnergy = parseFloat(e.target.value);
+            valDisplay.textContent = currentEnergy.toFixed(2);
+            // When energy changes, snap particle to new valid trajectory to avoid chaos
+            resetSimulation();
+        });
+
+        playBtn.addEventListener('click', () => {
+            isRunning = !isRunning;
+            playBtn.textContent = isRunning ? "Pause" : "Play";
+        });
+
+        resetBtn.addEventListener('click', () => {
+            slider.value = -0.10;
+            slider.dispatchEvent(new Event('input'));
+        });
+
+        // Initialize
+        resetSimulation();
+        update();
+
+    </script>
+</body>
+</html>

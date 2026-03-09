@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Van der Pol Oscillator 3D</title>
+    <style>
+        :root {
+            --primary: #00f3ff;
+            --secondary: #bd00ff;
+            --bg: #050505;
+            --panel-bg: rgba(10, 10, 15, 0.75);
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: var(--bg);
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            color: #e0e0e0;
+        }
+
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* UI Overlay */
+        #ui-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 340px;
+            background: var(--panel-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            z-index: 10;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            transition: transform 0.3s ease;
+        }
+
+        h1 {
+            margin: 0 0 4px 0;
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            margin-bottom: 20px;
+            font-family: monospace;
+        }
+
+        .equation {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-family: 'Times New Roman', serif;
+            font-style: italic;
+            font-size: 1.1rem;
+            border-left: 3px solid var(--secondary);
+        }
+
+        /* Controls */
+        .control-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #cbd5e1;
+            margin-bottom: 8px;
+        }
+
+        .value-display {
+            font-family: 'Courier New', monospace;
+            color: var(--primary);
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            background: #334155;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: var(--primary);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px var(--primary);
+            transition: transform 0.1s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        /* Buttons */
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        button {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+
+        button.primary {
+            background: linear-gradient(135deg, var(--primary), #00a8ff);
+            color: #000;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 243, 255, 0.3);
+        }
+
+        /* Status Text */
+        #status-text {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid var(--border);
+            font-size: 0.85rem;
+            line-height: 1.5;
+            color: #a1a1aa;
+        }
+        
+        #status-text strong {
+            color: var(--secondary);
+        }
+
+        /* Legend */
+        .legend {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            text-align: right;
+            pointer-events: none;
+            z-index: 10;
+        }
+        .legend-item {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 5px;
+            font-size: 0.8rem;
+            color: #94a3b8;
+            font-family: monospace;
+        }
+        .dot { width: 8px; height: 8px; border-radius: 50%; box-shadow: 0 0 5px currentColor;}
+
+        /* Loader */
+        #loader {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg); z-index: 100;
+            display: flex; align-items: center; justify-content: center;
+            color: var(--primary); font-family: monospace;
+            transition: opacity 0.5s;
+        }
+
+    </style>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body>
+
+    <div id="loader">Initializing Physics Engine...</div>
+
+    <div id="ui-panel">
+        <h1>Van der Pol Oscillator</h1>
+        <div class="subtitle">Nonlinear Limit Cycle Dynamics</div>
+
+        <div class="equation">
+            ẍ + &mu;(x² - 1)ẋ + x = 0
+        </div>
+
+        <div class="control-group">
+            <label>
+                Nonlinearity (&mu;)
+                <span id="mu-val" class="value-display">1.0</span>
+            </label>
+            <input type="range" id="mu-slider" min="0" max="6.0" step="0.1" value="1.0">
+        </div>
+
+        <div class="control-group">
+            <label>
+                Time Speed
+                <span id="speed-val" class="value-display">1.0x</span>
+            </label>
+            <input type="range" id="speed-slider" min="0.1" max="3.0" step="0.1" value="1.0">
+        </div>
+
+        <div class="btn-group">
+            <button id="btn-reset-in" class="primary">Reset (Inside)</button>
+            <button id="btn-reset-out">Reset (Outside)</button>
+        </div>
+
+        <div id="status-text">
+            <strong>State: Weakly Nonlinear</strong><br>
+            Trajectory spirals towards a nearly circular limit cycle. The damping term acts to pump energy when amplitude is small (|x|<1) and dissipate it when large (|x|>1).
+        </div>
+    </div>
+
+    <div class="legend">
+        <div class="legend-item" style="color:#00f3ff"><span class="dot" style="background:#00f3ff"></span> Position (x) vs Velocity (y)</div>
+        <div class="legend-item" style="color:#bd00ff"><span class="dot" style="background:#bd00ff"></span> Time Evolution (Depth)</div>
+        <div class="legend-item" style="color:#fff"><span class="dot" style="background:#fff"></span> Limit Cycle Attractor</div>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+        // --- Physics Engine ---
+        class VanDerPol {
+            constructor() {
+                this.x = 0.1;
+                this.y = 0;
+                this.mu = 1.0;
+                this.t = 0;
+            }
+
+            // Equation: x'' - mu*(1-x^2)*x' + x = 0
+            // System:
+            // dx/dt = y
+            // dy/dt = mu*(1-x^2)*y - x
+            getDerivatives(state) {
+                return {
+                    dx: state.y,
+                    dy: this.mu * (1 - state.x * state.x) * state.y - state.x
+                };
+            }
+
+            step(dt) {
+                // RK4 Integration
+                let s = { x: this.x, y: this.y };
+                
+                let k1 = this.getDerivatives(s);
+                
+                let s2 = { x: s.x + k1.dx * dt * 0.5, y: s.y + k1.dy * dt * 0.5 };
+                let k2 = this.getDerivatives(s2);
+                
+                let s3 = { x: s.x + k2.dx * dt * 0.5, y: s.y + k2.dy * dt * 0.5 };
+                let k3 = this.getDerivatives(s3);
+                
+                let s4 = { x: s.x + k3.dx * dt, y: s.y + k3.dy * dt };
+                let k4 = this.getDerivatives(s4);
+
+                this.x += (k1.dx + 2*k2.dx + 2*k3.dx + k4.dx) * dt / 6;
+                this.y += (k1.dy + 2*k2.dy + 2*k3.dy + k4.dy) * dt / 6;
+                this.t += dt;
+            }
+
+            reset(randomStart = false, type = 'inside') {
+                this.t = 0;
+                if (type === 'inside') {
+                    this.x = 0.1; 
+                    this.y = 0;
+                } else {
+                    this.x = 3.5;
+                    this.y = 3.5;
+                }
+            }
+        }
+
+        // --- Visual Config ---
+        const config = {
+            trailLength: 600, // Number of vertices in the ribbon
+            dt: 0.01,
+            simulationSpeed: 1,
+            timeScaleZ: 0.8, // How fast time moves in Z visual space
+        };
+
+        // --- Scene Setup ---
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x050505, 0.02);
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(6, 4, 12);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.toneMapping = THREE.ReinhardToneMapping;
+        container.appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.autoRotate = true;
+        controls.autoRotateSpeed = 0.5;
+
+        // --- Post Processing (Bloom) ---
+        const renderScene = new RenderPass(scene, camera);
+        const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+        bloomPass.threshold = 0;
+        bloomPass.strength = 1.2; // Neon glow intensity
+        bloomPass.radius = 0.5;
+
+        const composer = new EffectComposer(renderer);
+        composer.addPass(renderScene);
+        composer.addPass(bloomPass);
+
+        // --- Objects ---
+
+        // 1. Grid / Plane
+        const gridHelper = new THREE.GridHelper(20, 20, 0x333333, 0x111111);
+        gridHelper.rotation.x = Math.PI / 2; // Grid on XY plane (Position vs Velocity)
+        gridHelper.position.z = -5; // Behind the current time
+        scene.add(gridHelper);
+
+        // Axes Labels (Simulated with simple geometry lines)
+        const axesGroup = new THREE.Group();
+        scene.add(axesGroup);
+        const xAxisMat = new THREE.LineBasicMaterial({ color: 0x00f3ff, transparent:true, opacity:0.3 }); // Cyan X
+        const yAxisMat = new THREE.LineBasicMaterial({ color: 0xbd00ff, transparent:true, opacity:0.3 }); // Purple Y
+        
+        const xAxisGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-10,0,0), new THREE.Vector3(10,0,0)]);
+        const yAxisGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,-10,0), new THREE.Vector3(0,10,0)]);
+        
+        axesGroup.add(new THREE.Line(xAxisGeo, xAxisMat));
+        axesGroup.add(new THREE.Line(yAxisGeo, yAxisMat));
+
+
+        // 2. The Ribbon (Trajectory)
+        // We use a Triangle Strip to give the line thickness and gradients
+        const ribbonWidth = 0.15;
+        const ribbonGeo = new THREE.BufferGeometry();
+        // 2 points per step (top and bottom of ribbon) * trailLength
+        const positions = new Float32Array(config.trailLength * 2 * 3); 
+        const colors = new Float32Array(config.trailLength * 2 * 3);
+        
+        ribbonGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        ribbonGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+        const ribbonMat = new THREE.MeshBasicMaterial({
+            vertexColors: true,
+            side: THREE.DoubleSide,
+            transparent: true,
+            opacity: 0.9,
+            blending: THREE.AdditiveBlending
+        });
+
+        const ribbon = new THREE.Mesh(ribbonGeo, ribbonMat);
+        scene.add(ribbon);
+
+        // 3. The "Head" Particle
+        const headGeo = new THREE.SphereGeometry(0.15, 16, 16);
+        const headMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        const head = new THREE.Mesh(headGeo, headMat);
+        scene.add(head);
+        
+        // Glow sprite for head
+        const spriteMat = new THREE.SpriteMaterial({
+            map: new THREE.TextureLoader().load('https://threejs.org/examples/textures/sprites/spark1.png'), // Standard sparkle texture
+            color: 0x00f3ff,
+            transparent: true,
+            blending: THREE.AdditiveBlending
+        });
+        const glow = new THREE.Sprite(spriteMat);
+        glow.scale.set(2, 2, 1);
+        head.add(glow);
+
+
+        // --- Simulation Logic ---
+        const physics = new VanDerPol();
+        let history = []; // Array of Vector3
+
+        function updatePhysics() {
+            // Steps per frame for stability
+            const steps = 4;
+            const stepDt = config.dt * config.simulationSpeed;
+
+            for(let i=0; i<steps; i++) {
+                physics.step(stepDt);
+            }
+
+            // Current state vector
+            // X axis: x
+            // Y axis: y (velocity)
+            // Z axis: 0 (Head is always at Z=0, world moves back)
+            const currentPos = new THREE.Vector3(physics.x, physics.y, 0);
+            
+            // Update Head
+            head.position.copy(currentPos);
+
+            // Manage History for Ribbon
+            history.unshift(currentPos);
+            if (history.length > config.trailLength) {
+                history.pop();
+            }
+        }
+
+        function updateRibbonGeometry() {
+            const positions = ribbon.geometry.attributes.position.array;
+            const colors = ribbon.geometry.attributes.color.array;
+
+            // We need to construct a triangle strip.
+            // For every history point, we create 2 vertices (up and down offset)
+            
+            for (let i = 0; i < history.length; i++) {
+                const point = history[i];
+                // Z-depth increases with index (older points are deeper)
+                const zDepth = -i * (config.dt * config.simulationSpeed * 4) * config.timeScaleZ;
+
+                // Calculate color based on velocity (y) and position (x)
+                // High velocity = Purple, High position = Cyan
+                const color = new THREE.Color();
+                const intensity = 1 - (i / config.trailLength); // Fade out tail
+                
+                // Color logic: Mix cyan and purple based on phase angle
+                const angle = Math.atan2(point.y, point.x);
+                // normalized 0-1
+                const t = (angle + Math.PI) / (2 * Math.PI); 
+                color.setHSL(0.5 + t * 0.4, 1.0, 0.5); // Range from Cyan (0.5) to Purple (0.9)
+
+                // Populate Ribbon Vertices
+                const idx = i * 6; // 2 vertices * 3 coords
+                
+                // Vertex 1 (Top edge of ribbon)
+                positions[idx] = point.x;
+                positions[idx + 1] = point.y + ribbonWidth/2;
+                positions[idx + 2] = zDepth;
+                
+                colors[idx] = color.r * intensity;
+                colors[idx + 1] = color.g * intensity;
+                colors[idx + 2] = color.b * intensity;
+
+                // Vertex 2 (Bottom edge of ribbon)
+                positions[idx + 3] = point.x;
+                positions[idx + 4] = point.y - ribbonWidth/2;
+                positions[idx + 5] = zDepth;
+
+                colors[idx + 3] = color.r * intensity;
+                colors[idx + 4] = color.g * intensity;
+                colors[idx + 5] = color.b * intensity;
+            }
+
+            // Fill remaining buffer if history is short (startup)
+            for (let i = history.length * 6; i < positions.length; i++) {
+                positions[i] = 0;
+            }
+
+            ribbon.geometry.attributes.position.needsUpdate = true;
+            ribbon.geometry.attributes.color.needsUpdate = true;
+            
+            // Move axes grid slightly to follow time? 
+            // Or keep grid static and let ribbon flow through it.
+            // Let's keep grid static at Z=0 but fade it out? 
+            // Actually, let's fade the grid back so it looks like a tunnel.
+            // gridHelper.position.z = -10; 
+        }
+
+        // --- Interaction ---
+        const ui = {
+            muSlider: document.getElementById('mu-slider'),
+            muDisplay: document.getElementById('mu-val'),
+            speedSlider: document.getElementById('speed-slider'),
+            speedDisplay: document.getElementById('speed-val'),
+            btnIn: document.getElementById('btn-reset-in'),
+            btnOut: document.getElementById('btn-reset-out'),
+            text: document.getElementById('status-text')
+        };
+
+        function updateText(mu) {
+            let content = "";
+            if (mu < 0.1) {
+                content = "<strong>State: Harmonic Oscillator (&mu; ≈ 0)</strong><br>The nonlinearity is negligible. The system behaves like a simple pendulum with conserved energy. Orbits are nearly circular.";
+            } else if (mu < 1.5) {
+                content = "<strong>State: Weakly Nonlinear</strong><br>Trajectory spirals towards a smooth limit cycle. Energy is pumped in at low amplitudes and dissipated at high amplitudes.";
+            } else {
+                content = "<strong>State: Relaxation Oscillator (&mu; >> 1)</strong><br>The system exhibits 'slow-fast' dynamics. It crawls slowly along the cubic nullclines (horizontal segments) and jumps instantaneously between them (vertical segments).";
+            }
+            ui.text.innerHTML = content;
+        }
+
+        ui.muSlider.addEventListener('input', (e) => {
+            physics.mu = parseFloat(e.target.value);
+            ui.muDisplay.textContent = physics.mu.toFixed(1);
+            updateText(physics.mu);
+        });
+
+        ui.speedSlider.addEventListener('input', (e) => {
+            config.simulationSpeed = parseFloat(e.target.value);
+            ui.speedDisplay.textContent = config.simulationSpeed.toFixed(1) + "x";
+        });
+
+        ui.btnIn.addEventListener('click', () => { history = []; physics.reset(false, 'inside'); });
+        ui.btnOut.addEventListener('click', () => { history = []; physics.reset(false, 'outside'); });
+
+        // --- Main Loop ---
+        function animate() {
+            requestAnimationFrame(animate);
+
+            updatePhysics();
+            updateRibbonGeometry();
+
+            controls.update();
+            composer.render();
+        }
+
+        // Init
+        document.getElementById('loader').style.opacity = 0;
+        setTimeout(() => document.getElementById('loader').remove(), 500);
+        updateText(1.0);
+        animate();
+
+        // Resize Handler
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            composer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+    </script>
+</body>
+</html>

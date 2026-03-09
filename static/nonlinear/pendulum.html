@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Nonlinear Pendulum & Phase Cylinder</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #0f172a; font-family: 'Segoe UI', sans-serif; }
+        
+        #ui-container {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 320px;
+            background: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(8px);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            z-index: 10;
+        }
+
+        h1 { margin: 0 0 5px 0; font-size: 1.2rem; color: #38bdf8; }
+        p { margin: 0 0 15px 0; font-size: 0.85rem; color: #94a3b8; }
+
+        .control-group { margin-bottom: 15px; }
+        
+        label { 
+            display: flex; 
+            justify-content: space-between; 
+            font-size: 0.9rem; 
+            margin-bottom: 5px;
+            color: #e2e8f0;
+        }
+        
+        .val-display { font-family: monospace; color: #38bdf8; }
+
+        input[type="range"] {
+            width: 100%;
+            accent-color: #38bdf8;
+            background: #334155;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            background: #0ea5e9;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 5px;
+            transition: background 0.2s;
+        }
+        button:hover { background: #0284c7; }
+
+        .legend {
+            margin-top: 15px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            font-size: 0.8rem;
+        }
+        .legend-item { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+        .dot { width: 8px; height: 8px; border-radius: 50%; }
+
+        #labels {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            text-align: center;
+            color: #64748b;
+            font-size: 0.9rem;
+            pointer-events: none;
+        }
+    </style>
+    
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body>
+
+    <div id="ui-container">
+        <h1>Nonlinear Pendulum</h1>
+        <p>
+            $\ddot{\theta} + b\dot{\theta} + \sin\theta = 0$<br>
+            Left: 3D Pendulum. Right: Phase Cylinder.
+        </p>
+
+        <div class="control-group">
+            <label>Energy (Init Speed) <span id="eVal" class="val-display">E &lt; 1</span></label>
+            <input type="range" id="energySlider" min="0" max="3.5" step="0.1" value="1.8">
+            <small style="color: #64748b; display:block; margin-top:2px;">(0=Rest, 2=Over Top)</small>
+        </div>
+
+        <div class="control-group">
+            <label>Damping (b) <span id="bVal" class="val-display">0.00</span></label>
+            <input type="range" id="dampSlider" min="0" max="0.5" step="0.01" value="0.0">
+        </div>
+
+        <button id="resetBtn">Reset Simulation</button>
+
+        <div class="legend">
+            <div class="legend-item"><span class="dot" style="background:#ef4444"></span> Current State</div>
+            <div class="legend-item"><span class="dot" style="background:#fbbf24"></span> Trajectory Trace</div>
+            <div class="legend-item"><span class="dot" style="background:#475569"></span> Separatrix (E=1)</div>
+        </div>
+    </div>
+
+    <div id="labels">
+        <span style="margin-right: 20vw;">Physical Space</span>
+        <span style="margin-left: 20vw;">Cylindrical Phase Space $(\theta, v)$</span>
+    </div>
+
+    <script>
+        window.MathJax = {
+            tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] }
+        };
+    </script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // --- Configuration ---
+        const config = {
+            g: 9.8,
+            L: 1.0,
+            dt: 0.015,
+            trailLength: 200,
+            cylinderRadius: 1.5,
+            cylinderHeight: 6
+        };
+
+        // State variables
+        // theta: angle from downward vertical (0 = bottom)
+        // v: angular velocity
+        let state = { theta: 0.5, v: 0.0 };
+        let damping = 0.0;
+        let trail = [];
+
+        // --- Scene Setup ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0f172a);
+        
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(0, 2, 9);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        document.body.appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+
+        // Lights
+        const ambientLight = new THREE.AmbientLight(0x404040, 2);
+        scene.add(ambientLight);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 2);
+        dirLight.position.set(5, 10, 5);
+        dirLight.castShadow = true;
+        scene.add(dirLight);
+
+        // --- Group 1: Physical Pendulum (Left Side) ---
+        const physGroup = new THREE.Group();
+        physGroup.position.x = -2.5;
+        scene.add(physGroup);
+
+        // Pivot
+        const pivotGeo = new THREE.CylinderGeometry(0.1, 0.1, 0.5);
+        const pivotMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8 });
+        const pivot = new THREE.Mesh(pivotGeo, pivotMat);
+        pivot.rotation.x = Math.PI / 2;
+        physGroup.add(pivot);
+
+        // Rod
+        const rodGeo = new THREE.CylinderGeometry(0.02, 0.02, config.L);
+        const rodMat = new THREE.MeshStandardMaterial({ color: 0xcbd5e1 });
+        const rod = new THREE.Mesh(rodGeo, rodMat);
+        rod.geometry.translate(0, -config.L/2, 0); // Pivot at top
+        physGroup.add(rod);
+
+        // Bob
+        const bobGeo = new THREE.SphereGeometry(0.2, 32, 32);
+        const bobMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.2 });
+        const bob = new THREE.Mesh(bobGeo, bobMat);
+        bob.position.y = -config.L;
+        rod.add(bob); // Attach bob to rod so it rotates with it
+
+        // --- Group 2: Phase Cylinder (Right Side) ---
+        const phaseGroup = new THREE.Group();
+        phaseGroup.position.x = 2.5;
+        scene.add(phaseGroup);
+
+        // Cylinder Mesh (Transparent)
+        // Texture for grid lines
+        const canvas = document.createElement('canvas');
+        canvas.width = 512; canvas.height = 512;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = 'rgba(255,255,255,0.05)';
+        ctx.fillRect(0,0,512,512);
+        ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+        ctx.lineWidth = 2;
+        // Draw grid
+        for(let i=0; i<=4; i++) {
+            ctx.beginPath(); ctx.moveTo(0, i*128); ctx.lineTo(512, i*128); ctx.stroke(); // Horiz
+            ctx.beginPath(); ctx.moveTo(i*128, 0); ctx.lineTo(i*128, 512); ctx.stroke(); // Vert
+        }
+        // Draw Separatrix guide (approximate sine shape)
+        ctx.strokeStyle = '#475569';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        for(let x=0; x<=512; x++) {
+            const angle = (x/512) * Math.PI * 2;
+            const y = 256 + Math.cos(angle) * 100; // Schematic cosine
+            if(x==0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+        }
+        ctx.stroke();
+        ctx.beginPath();
+        for(let x=0; x<=512; x++) {
+            const angle = (x/512) * Math.PI * 2;
+            const y = 256 - Math.cos(angle) * 100; 
+            if(x==0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+        }
+        ctx.stroke();
+
+        const tex = new THREE.CanvasTexture(canvas);
+        const cylGeo = new THREE.CylinderGeometry(config.cylinderRadius, config.cylinderRadius, config.cylinderHeight, 64, 1, true);
+        const cylMat = new THREE.MeshBasicMaterial({ 
+            map: tex, 
+            side: THREE.DoubleSide, 
+            transparent: true, 
+            opacity: 0.8,
+            depthWrite: false
+        });
+        const cylinder = new THREE.Mesh(cylGeo, cylMat);
+        phaseGroup.add(cylinder);
+
+        // Phase Particle
+        const pParticle = new THREE.Mesh(
+            new THREE.SphereGeometry(0.15),
+            new THREE.MeshBasicMaterial({ color: 0xef4444 })
+        );
+        phaseGroup.add(pParticle);
+
+        // Trajectory Line
+        const trailGeo = new THREE.BufferGeometry();
+        const trailMat = new THREE.LineBasicMaterial({ color: 0xfbbf24 });
+        const trailLine = new THREE.Line(trailGeo, trailMat);
+        phaseGroup.add(trailLine);
+
+        // --- Physics Engine ---
+
+        function getDerivatives(s) {
+            // d(theta)/dt = v
+            // d(v)/dt = -sin(theta) - damping*v
+            return {
+                dTheta: s.v,
+                dv: -Math.sin(s.theta) - damping * s.v
+            };
+        }
+
+        function rk4Step(s, dt) {
+            let k1 = getDerivatives(s);
+            
+            let s2 = { theta: s.theta + k1.dTheta*dt*0.5, v: s.v + k1.dv*dt*0.5 };
+            let k2 = getDerivatives(s2);
+            
+            let s3 = { theta: s.theta + k2.dTheta*dt*0.5, v: s.v + k2.dv*dt*0.5 };
+            let k3 = getDerivatives(s3);
+            
+            let s4 = { theta: s.theta + k3.dTheta*dt, v: s.v + k3.dv*dt };
+            let k4 = getDerivatives(s4);
+
+            return {
+                theta: s.theta + (k1.dTheta + 2*k2.dTheta + 2*k3.dTheta + k4.dTheta)*dt/6,
+                v: s.v + (k1.dv + 2*k2.dv + 2*k3.dv + k4.dv)*dt/6
+            };
+        }
+
+        // --- Helper: Map (theta, v) to 3D Cylinder Coords ---
+        function toCylinder(theta, v) {
+            // Theta maps to angle around Y axis
+            // v maps to Height (Y axis)
+            
+            // Normalize theta to 0..2PI for visual stability on texture? 
+            // Actually, we want continuous wrapping.
+            // x = r * sin(theta)
+            // z = r * cos(theta)
+            // y = v * scale
+            
+            // Note: In ThreeJS, Cylinder stands on Y.
+            // Physics theta 0 is bottom (stable). 
+            // In cylinder phase space 0 is usually front center.
+            
+            const r = config.cylinderRadius;
+            // Shift theta by PI so 0 (bottom) is at the "back" or "front" as preferred.
+            // Let's keep it simple: theta corresponds directly to rotation.
+            
+            const x = r * Math.sin(theta);
+            const z = r * Math.cos(theta); 
+            const y = v * 0.5; // Scale velocity to fit height
+
+            return new THREE.Vector3(x, y, z);
+        }
+
+        // --- Interaction ---
+        const sliderE = document.getElementById('energySlider');
+        const sliderB = document.getElementById('dampSlider');
+        const btnReset = document.getElementById('resetBtn');
+        const dispE = document.getElementById('eVal');
+        const dispB = document.getElementById('bVal');
+
+        function reset() {
+            trail = [];
+            // Init based on Energy slider.
+            // We set start at bottom (theta=0) with velocity based on E.
+            // E = v^2 / 2 - cos(theta)
+            // Wait, standard potential is V = 1 - cos(theta) usually, or -cos(theta).
+            // Text says E = 1/2 v^2 - cos(theta).
+            // Min Energy (Rest at bottom) = -1.
+            // Separatrix (Rest at top) = 1.
+            
+            // Slider 0..3.5 is "velocity kick".
+            const kick = parseFloat(sliderE.value);
+            state = { theta: 0.01, v: kick }; // Start slightly off 0 for dynamics
+            damping = parseFloat(sliderB.value);
+            
+            // Update labels
+            dispB.textContent = damping.toFixed(2);
+            let E = 0.5*state.v*state.v - Math.cos(state.theta);
+            if(E < 1) dispE.textContent = "Libration (E<1)";
+            else if(Math.abs(E-1) < 0.1) dispE.textContent = "Separatrix (E~1)";
+            else dispE.textContent = "Rotation (E>1)";
+        }
+
+        sliderE.addEventListener('input', reset);
+        sliderB.addEventListener('input', () => {
+            damping = parseFloat(sliderB.value);
+            dispB.textContent = damping.toFixed(2);
+        });
+        btnReset.addEventListener('click', reset);
+
+        // --- Animation Loop ---
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // 1. Physics Step (Sub-steps for accuracy)
+            for(let i=0; i<4; i++) {
+                state = rk4Step(state, config.dt);
+            }
+
+            // 2. Update Physical Pendulum
+            rod.rotation.z = state.theta; 
+
+            // 3. Update Phase Particle
+            const pos = toCylinder(state.theta, state.v);
+            pParticle.position.copy(pos);
+
+            // 4. Update Trail
+            trail.push(pos.clone());
+            if(trail.length > config.trailLength) trail.shift();
+
+            // Update Line Geometry
+            const points = trail.flatMap(p => [p.x, p.y, p.z]);
+            trailGeo.setAttribute('position', new THREE.Float32BufferAttribute(points, 3));
+            trailGeo.computeBoundingSphere();
+
+            // 5. Camera & Render
+            // Optional: Rotate cylinder group slowly for better viewing? No, keeps it confusing.
+            // phaseGroup.rotation.y += 0.001; 
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // Init
+        reset();
+        animate();
+
+        // Resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
