@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Double-Well Potential Simulation</title>
     <style>
         :root {
@@ -11,6 +11,10 @@
             --bg: #f8fafc;
             --panel: #ffffff;
             --danger: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
         }
 
         body {
@@ -22,6 +26,7 @@
             align-items: center;
             margin: 0;
             padding: 20px;
+            min-height: 100vh;
         }
 
         h1 {
@@ -48,12 +53,15 @@
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
             flex-wrap: wrap;
             justify-content: center;
+            width: min(100%, 980px);
         }
 
         .canvas-group {
             display: flex;
             flex-direction: column;
             gap: 10px;
+            flex: 1 1 500px;
+            min-width: 0;
         }
 
         canvas {
@@ -61,6 +69,9 @@
             border-radius: 4px;
             background-color: #fff;
             cursor: crosshair;
+            display: block;
+            width: min(100%, 500px);
+            height: auto;
         }
 
         .controls {
@@ -69,6 +80,8 @@
             gap: 20px;
             min-width: 250px;
             padding: 10px;
+            flex: 1 1 280px;
+            max-width: 320px;
         }
 
         .control-group {
@@ -139,6 +152,47 @@
             gap: 5px;
         }
         .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+
+        .button-row {
+            flex-direction: row;
+            gap: 10px;
+        }
+
+        @media (max-width: 700px) {
+            body {
+                padding: 12px;
+            }
+
+            h1 {
+                font-size: 1.2rem;
+                text-align: center;
+            }
+
+            .subtitle {
+                font-size: 0.85rem;
+            }
+
+            .main-container {
+                padding: 14px;
+                gap: 14px;
+            }
+
+            .controls {
+                min-width: 0;
+                max-width: none;
+                width: 100%;
+                padding: 0;
+            }
+
+            .button-row {
+                flex-direction: column;
+            }
+
+            .legend {
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -172,7 +226,7 @@
                 <small style="color: #64748b">Min: -0.25 (Centers), 0.0 (Saddle)</small>
             </div>
 
-            <div class="control-group" style="flex-direction: row; gap: 10px;">
+            <div class="control-group button-row">
                 <button id="playBtn">Pause</button>
                 <button id="resetBtn" class="reset">Reset</button>
             </div>

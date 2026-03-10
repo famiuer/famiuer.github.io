@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Van der Pol Oscillator 3D</title>
     <style>
         :root {
@@ -13,12 +13,22 @@
             --border: rgba(255, 255, 255, 0.1);
         }
 
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+        }
+
         body {
             margin: 0;
             overflow: hidden;
             background-color: var(--bg);
             font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             color: #e0e0e0;
+            position: relative;
         }
 
         #canvas-container {
@@ -26,16 +36,17 @@
             top: 0;
             left: 0;
             width: 100%;
-            height: 100%;
+            height: 100vh;
+            height: 100dvh;
             z-index: 1;
         }
 
         /* UI Overlay */
         #ui-panel {
             position: absolute;
-            top: 20px;
-            left: 20px;
-            width: 340px;
+            top: max(20px, env(safe-area-inset-top));
+            left: max(20px, env(safe-area-inset-left));
+            width: min(340px, calc(100vw - env(safe-area-inset-left) - env(safe-area-inset-right) - 40px));
             background: var(--panel-bg);
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
@@ -45,6 +56,8 @@
             z-index: 10;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
             transition: transform 0.3s ease;
+            max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 40px);
+            overflow: auto;
         }
 
         h1 {
@@ -166,11 +179,12 @@
         /* Legend */
         .legend {
             position: absolute;
-            bottom: 20px;
-            right: 20px;
+            bottom: max(20px, env(safe-area-inset-bottom));
+            right: max(20px, env(safe-area-inset-right));
             text-align: right;
             pointer-events: none;
             z-index: 10;
+            max-width: min(320px, calc(100vw - 40px));
         }
         .legend-item {
             display: flex;
@@ -191,6 +205,35 @@
             display: flex; align-items: center; justify-content: center;
             color: var(--primary); font-family: monospace;
             transition: opacity 0.5s;
+        }
+
+        @media (max-width: 700px) {
+            #ui-panel {
+                top: max(8px, env(safe-area-inset-top));
+                left: max(8px, env(safe-area-inset-left));
+                right: max(8px, env(safe-area-inset-right));
+                width: auto;
+                padding: 16px;
+                max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 16px);
+            }
+
+            h1 { font-size: 1.2rem; }
+
+            .btn-group {
+                flex-direction: column;
+            }
+
+            .legend {
+                left: 8px;
+                right: 8px;
+                text-align: left;
+                bottom: max(8px, env(safe-area-inset-bottom));
+            }
+
+            .legend-item {
+                justify-content: flex-start;
+                font-size: 0.72rem;
+            }
         }
 
     </style>
@@ -327,15 +370,24 @@
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
         renderer.toneMapping = THREE.ReinhardToneMapping;
         container.appendChild(renderer.domElement);
+        renderer.domElement.style.touchAction = 'none';
 
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
         controls.autoRotate = true;
         controls.autoRotateSpeed = 0.5;
+
+        function applyResponsiveView() {
+            const isMobile = window.innerWidth <= 700;
+            camera.position.set(isMobile ? 8.5 : 6, isMobile ? 5.2 : 4, isMobile ? 14 : 12);
+            controls.enablePan = !isMobile;
+            controls.autoRotateSpeed = isMobile ? 0.35 : 0.5;
+            controls.update();
+        }
 
         // --- Post Processing (Bloom) ---
         const renderScene = new RenderPass(scene, camera);
@@ -547,6 +599,7 @@
         }
 
         // Init
+        applyResponsiveView();
         document.getElementById('loader').style.opacity = 0;
         setTimeout(() => document.getElementById('loader').remove(), 500);
         updateText(1.0);
@@ -557,7 +610,9 @@
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
             composer.setSize(window.innerWidth, window.innerHeight);
+            applyResponsiveView();
         });
 
     </script>
