@@ -60,6 +60,24 @@
             overflow: auto;
         }
 
+        #panel-toggle {
+            position: absolute;
+            top: max(12px, env(safe-area-inset-top));
+            right: max(12px, env(safe-area-inset-right));
+            z-index: 20;
+            display: none;
+            padding: 10px 14px;
+            margin: 0;
+            width: auto;
+            border-radius: 999px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(5, 5, 5, 0.78);
+            color: #e2e8f0;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+        }
+
         h1 {
             margin: 0 0 4px 0;
             font-size: 1.5rem;
@@ -208,6 +226,10 @@
         }
 
         @media (max-width: 700px) {
+            #panel-toggle {
+                display: block;
+            }
+
             #ui-panel {
                 top: max(8px, env(safe-area-inset-top));
                 left: max(8px, env(safe-area-inset-left));
@@ -234,6 +256,17 @@
                 justify-content: flex-start;
                 font-size: 0.72rem;
             }
+
+            body.controls-collapsed #ui-panel {
+                transform: translateY(calc(-100% - 24px));
+                opacity: 0;
+                pointer-events: none;
+            }
+
+            body.controls-collapsed .legend {
+                opacity: 0;
+                transform: translateY(12px);
+            }
         }
 
     </style>
@@ -249,6 +282,7 @@
 <body>
 
     <div id="loader">Initializing Physics Engine...</div>
+    <button id="panel-toggle" type="button" aria-expanded="false">Controls</button>
 
     <div id="ui-panel">
         <h1>Van der Pol Oscillator</h1>
@@ -560,6 +594,31 @@
             btnOut: document.getElementById('btn-reset-out'),
             text: document.getElementById('status-text')
         };
+        const panelToggle = document.getElementById('panel-toggle');
+        let wasMobileViewport = window.innerWidth <= 700;
+
+        function syncMobilePanel(forceCollapse = false) {
+            const isMobileViewport = window.innerWidth <= 700;
+
+            if (isMobileViewport) {
+                panelToggle.style.display = 'block';
+                if (forceCollapse || !wasMobileViewport) {
+                    document.body.classList.add('controls-collapsed');
+                }
+            } else {
+                panelToggle.style.display = 'none';
+                document.body.classList.remove('controls-collapsed');
+            }
+
+            panelToggle.textContent = document.body.classList.contains('controls-collapsed') ? 'Controls' : 'Hide';
+            panelToggle.setAttribute('aria-expanded', String(!document.body.classList.contains('controls-collapsed')));
+            wasMobileViewport = isMobileViewport;
+        }
+
+        panelToggle.addEventListener('click', () => {
+            document.body.classList.toggle('controls-collapsed');
+            syncMobilePanel();
+        });
 
         function updateText(mu) {
             let content = "";
@@ -600,6 +659,7 @@
 
         // Init
         applyResponsiveView();
+        syncMobilePanel(true);
         document.getElementById('loader').style.opacity = 0;
         setTimeout(() => document.getElementById('loader').remove(), 500);
         updateText(1.0);
@@ -613,6 +673,7 @@
             renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
             composer.setSize(window.innerWidth, window.innerHeight);
             applyResponsiveView();
+            syncMobilePanel();
         });
 
     </script>

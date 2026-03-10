@@ -25,6 +25,24 @@
             z-index: 10;
             max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 40px);
             overflow: auto;
+            transition: transform 0.25s ease, opacity 0.25s ease;
+        }
+
+        #panel-toggle {
+            position: absolute;
+            top: max(12px, env(safe-area-inset-top));
+            right: max(12px, env(safe-area-inset-right));
+            z-index: 20;
+            display: none;
+            width: auto;
+            margin: 0;
+            padding: 10px 14px;
+            border-radius: 999px;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            background: rgba(15, 23, 42, 0.86);
+            backdrop-filter: blur(10px);
+            color: #e2e8f0;
+            box-shadow: 0 10px 24px rgba(2, 6, 23, 0.35);
         }
 
         h1 { margin: 0 0 5px 0; font-size: 1.2rem; color: #38bdf8; }
@@ -88,6 +106,10 @@
         #labels span { margin: 0 !important; }
 
         @media (max-width: 700px) {
+            #panel-toggle {
+                display: block;
+            }
+
             #ui-container {
                 top: max(8px, env(safe-area-inset-top));
                 left: max(8px, env(safe-area-inset-left));
@@ -107,6 +129,12 @@
                 font-size: 0.75rem;
                 bottom: max(8px, env(safe-area-inset-bottom));
             }
+
+            body.controls-collapsed #ui-container {
+                transform: translateY(calc(-100% - 24px));
+                opacity: 0;
+                pointer-events: none;
+            }
         }
     </style>
     
@@ -120,6 +148,8 @@
     </script>
 </head>
 <body>
+
+    <button id="panel-toggle" type="button" aria-expanded="false">Controls</button>
 
     <div id="ui-container">
         <h1>Nonlinear Pendulum</h1>
@@ -373,6 +403,31 @@
         const btnReset = document.getElementById('resetBtn');
         const dispE = document.getElementById('eVal');
         const dispB = document.getElementById('bVal');
+        const panelToggle = document.getElementById('panel-toggle');
+        let wasMobileViewport = window.innerWidth <= 700;
+
+        function syncMobilePanel(forceCollapse = false) {
+            const isMobileViewport = window.innerWidth <= 700;
+
+            if (isMobileViewport) {
+                panelToggle.style.display = 'block';
+                if (forceCollapse || !wasMobileViewport) {
+                    document.body.classList.add('controls-collapsed');
+                }
+            } else {
+                panelToggle.style.display = 'none';
+                document.body.classList.remove('controls-collapsed');
+            }
+
+            panelToggle.textContent = document.body.classList.contains('controls-collapsed') ? 'Controls' : 'Hide';
+            panelToggle.setAttribute('aria-expanded', String(!document.body.classList.contains('controls-collapsed')));
+            wasMobileViewport = isMobileViewport;
+        }
+
+        panelToggle.addEventListener('click', () => {
+            document.body.classList.toggle('controls-collapsed');
+            syncMobilePanel();
+        });
 
         function reset() {
             trail = [];
@@ -439,6 +494,7 @@
         }
 
         // Init
+        syncMobilePanel(true);
         applyResponsiveLayout();
         reset();
         animate();
@@ -450,6 +506,7 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
             applyResponsiveLayout();
+            syncMobilePanel();
         });
     </script>
 </body>
