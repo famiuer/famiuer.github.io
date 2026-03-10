@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Poincaré Map on a Torus</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+        }
+
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background-color: #111; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            color: #fff; 
+        }
+        #canvas-container { 
+            width: 100vw; 
+            height: 100vh; 
+            height: 100dvh;
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            z-index: 1; 
+        }
+        #ui-panel { 
+            position: absolute; 
+            top: max(10px, env(safe-area-inset-top)); 
+            left: max(10px, env(safe-area-inset-left)); 
+            z-index: 2; 
+            background: rgba(20, 20, 20, 0.85); 
+            border-radius: 8px; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.5); 
+            width: min(300px, calc(100vw - env(safe-area-inset-left) - env(safe-area-inset-right) - 20px)); 
+            backdrop-filter: blur(5px); 
+            border: 1px solid #333; 
+            display: flex; 
+            flex-direction: column; 
+            transition: max-height 0.3s ease;
+            max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 20px);
+        }
+        #ui-header { 
+            padding: 15px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            border-radius: 8px; 
+            cursor: pointer;
+            user-select: none;
+            background: rgba(40, 40, 40, 0.5);
+        }
+        #ui-header:hover {
+            background: rgba(60, 60, 60, 0.5);
+        }
+        #ui-header h2 { 
+            margin: 0; 
+            font-size: 1.2rem; 
+            color: #4da6ff; 
+        }
+        #ui-toggle { 
+            color: #4da6ff; 
+            font-size: 1.2rem; 
+        }
+        #ui-content { 
+            padding: 0 15px 15px 15px; 
+            overflow-y: auto;
+            max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 110px);
+        }
+        .control-group { margin-bottom: 12px; }
+        label { display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 4px; }
+        input[type=range] { width: 100%; cursor: pointer; }
+        button, input { touch-action: manipulation; }
+        button { 
+            width: 100%; 
+            padding: 10px; 
+            background: #4da6ff; 
+            color: #000; 
+            border: none; 
+            border-radius: 4px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            margin-top: 5px; 
+            transition: background 0.2s; 
+        }
+        button:hover { background: #3388ff; }
+        .presets { display: flex; gap: 5px; margin-top: 10px; }
+        .presets button { font-size: 0.8rem; padding: 6px; }
+        #dot-counter { 
+            margin-top: 10px; 
+            font-size: 0.85rem; 
+            color: #ff5555; 
+            font-weight: bold; 
+            text-align: center;
+        }
+        
+        /* Mobile Specifics */
+        @media (max-width: 768px) {
+            #ui-panel { 
+                left: max(8px, env(safe-area-inset-left));
+                right: max(8px, env(safe-area-inset-right));
+                width: auto; 
+            }
+            #ui-content {
+                max-height: calc(75dvh - 60px);
+            }
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+
+    <div id="ui-panel">
+        <div id="ui-header">
+            <h2>Poincaré Section</h2>
+            <span id="ui-toggle">▼</span>
+        </div>
+        
+        <div id="ui-content">
+            <div class="control-group">
+                <label><span>&omega;<sub>1</sub> (Lat Freq):</span> <span id="w1-val">1.41</span></label>
+                <input type="range" id="w1" min="0" max="5" step="0.01" value="1.41">
+            </div>
+            <div class="control-group">
+                <label><span>&omega;<sub>2</sub> (Lon Freq):</span> <span id="w2-val">1.00</span></label>
+                <input type="range" id="w2" min="0" max="5" step="0.01" value="1.00">
+            </div>
+            <div class="control-group">
+                <label><span>K<sub>1</sub> (Coupling 1):</span> <span id="k1-val">0.00</span></label>
+                <input type="range" id="k1" min="0" max="2" step="0.01" value="0">
+            </div>
+            <div class="control-group">
+                <label><span>K<sub>2</sub> (Coupling 2):</span> <span id="k2-val">0.00</span></label>
+                <input type="range" id="k2" min="0" max="2" step="0.01" value="0">
+            </div>
+
+            <button id="clear-btn">Clear Trajectory</button>
+            <div id="dot-counter">Poincaré Intersections: 0</div>
+            
+            <div class="presets">
+                <button id="preset-quasi">Quasiperiodic</button>
+                <button id="preset-trefoil">3:2 Knot</button>
+                <button id="preset-lock">Phase Lock</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <script>
+        // --- Robust UI Folding Logic ---
+        const uiHeader = document.getElementById('ui-header');
+        const uiContent = document.getElementById('ui-content');
+        const uiToggle = document.getElementById('ui-toggle');
+        
+        // Default to collapsed on mobile screens, open on desktop
+        let wasMobileViewport = window.innerWidth <= 768;
+        let isCollapsed = wasMobileViewport;
+
+        function updateUIState() {
+            uiContent.style.display = isCollapsed ? 'none' : 'block';
+            uiToggle.innerText = isCollapsed ? '▼' : '▲';
+        }
+
+        function syncUIState(force = false) {
+            const isMobileViewport = window.innerWidth <= 768;
+            if (force || isMobileViewport !== wasMobileViewport) {
+                isCollapsed = isMobileViewport;
+            }
+            wasMobileViewport = isMobileViewport;
+            updateUIState();
+        }
+
+        uiHeader.addEventListener('click', () => {
+            isCollapsed = !isCollapsed;
+            updateUIState();
+        });
+
+        // Initialize UI state
+        syncUIState(true);
+
+        // --- System State ---
+        const sys = { w1: 1.41, w2: 1.0, k1: 0.0, k2: 0.0 };
+        let theta1 = 0, theta2 = 0;
+        let prevTheta2 = 0, prevTheta1 = 0;
+        let revCount = 0;
+        let intersectionCount = 0;
+        const dt = 0.015; // Slightly finer timestep for precision crossing detection
+        
+        const R = 10, r = 4;  
+
+        // --- Three.js Setup ---
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x05070c);
+        scene.fog = new THREE.FogExp2(0x05070c, 0.018);
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(-15, 25, 30); // Start at an angle to see the section plane
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+        container.appendChild(renderer.domElement);
+        renderer.domElement.style.touchAction = 'none';
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true; 
+        controls.dampingFactor = 0.05;
+        controls.target.set(0, 0, 0);
+
+        scene.add(new THREE.AmbientLight(0xffffff, 0.28));
+        const hemiLight = new THREE.HemisphereLight(0x8ec5ff, 0x071018, 0.85);
+        scene.add(hemiLight);
+        const dirLight = new THREE.DirectionalLight(0xbfd8ff, 1.05);
+        dirLight.position.set(10, 20, 12);
+        scene.add(dirLight);
+
+        // Torus
+        const torusMat = new THREE.MeshPhysicalMaterial({ 
+            color: 0x0d2842,
+            emissive: 0x071320,
+            transparent: true,
+            opacity: 0.62,
+            roughness: 0.22,
+            metalness: 0.08,
+            transmission: 0.18,
+            clearcoat: 0.8,
+            clearcoatRoughness: 0.2,
+            side: THREE.DoubleSide 
+        });
+        const torusMesh = new THREE.Mesh(new THREE.TorusGeometry(R, r, 64, 100), torusMat);
+        torusMesh.rotation.x = Math.PI / 2;
+        scene.add(torusMesh);
+
+        // Poincaré Section Plane (Half-plane at th2 = 0)
+        const sectionWidth = R + r + 3;
+        const sectionHeight = 14;
+        const planeGeo = new THREE.PlaneGeometry(sectionWidth, sectionHeight);
+        const planeMat = new THREE.MeshBasicMaterial({ 
+            color: 0x5aaeff, transparent: true, opacity: 0.16, 
+            side: THREE.DoubleSide, depthWrite: false 
+        });
+        const sectionPlane = new THREE.Mesh(planeGeo, planeMat);
+        sectionPlane.position.set(sectionWidth / 2, 0, 0);
+        scene.add(sectionPlane);
+
+        const sectionOutlinePoints = [
+            new THREE.Vector3(0, -sectionHeight / 2, 0),
+            new THREE.Vector3(0, sectionHeight / 2, 0),
+            new THREE.Vector3(sectionWidth, sectionHeight / 2, 0),
+            new THREE.Vector3(sectionWidth, -sectionHeight / 2, 0),
+            new THREE.Vector3(0, -sectionHeight / 2, 0)
+        ];
+        const sectionOutline = new THREE.Line(
+            new THREE.BufferGeometry().setFromPoints(sectionOutlinePoints),
+            new THREE.LineBasicMaterial({ color: 0x7ec8ff, transparent: true, opacity: 0.42 })
+        );
+        scene.add(sectionOutline);
+
+        // Trajectory Line
+        const MAX_POINTS = 20000;
+        const positions = new Float32Array(MAX_POINTS * 3);
+        const lineGeo = new THREE.BufferGeometry();
+        lineGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        const trajectory = new THREE.Line(lineGeo, new THREE.LineBasicMaterial({ 
+            color: 0xffbf47, transparent: true, opacity: 0.88 
+        }));
+        scene.add(trajectory);
+        let pointCount = 0;
+
+        // Group to hold our Poincaré intersection dots
+        const dotsGroup = new THREE.Group();
+        scene.add(dotsGroup);
+        const dotGeo = new THREE.SphereGeometry(0.34, 18, 18);
+        const dotMat = new THREE.MeshStandardMaterial({ color: 0xff4b4b, emissive: 0x7a1111, roughness: 0.18 });
+
+        const currentMarker = new THREE.Mesh(
+            new THREE.SphereGeometry(0.42, 20, 20),
+            new THREE.MeshStandardMaterial({ color: 0xffdf74, emissive: 0x8a5a00, roughness: 0.12 })
+        );
+        scene.add(currentMarker);
+
+        function getTorusPosition(th1, th2) {
+            return new THREE.Vector3(
+                (R + r * Math.cos(th1)) * Math.cos(th2),
+                r * Math.sin(th1),
+                (R + r * Math.cos(th1)) * Math.sin(th2)
+            );
+        }
+
+        const sectionCurvePoints = [];
+        for (let i = 0; i <= 180; i++) {
+            sectionCurvePoints.push(getTorusPosition((i / 180) * Math.PI * 2, 0));
+        }
+        const sectionCurve = new THREE.Line(
+            new THREE.BufferGeometry().setFromPoints(sectionCurvePoints),
+            new THREE.LineBasicMaterial({ color: 0x72cfff, transparent: true, opacity: 0.75 })
+        );
+        scene.add(sectionCurve);
+
+        function resetTrajectory() {
+            pointCount = 0; theta1 = 0; theta2 = 0; 
+            prevTheta1 = 0; prevTheta2 = 0; 
+            revCount = 0; intersectionCount = 0;
+            positions.fill(0); 
+            lineGeo.attributes.position.needsUpdate = true;
+            lineGeo.setDrawRange(0, 0);
+            
+            // Clear all dots from the scene
+            while(dotsGroup.children.length > 0){ 
+                dotsGroup.remove(dotsGroup.children[0]); 
+            }
+            document.getElementById('dot-counter').innerText = `Poincaré Intersections: 0`;
+            currentMarker.position.copy(getTorusPosition(theta1, theta2));
+        }
+
+        function updatePhysics() {
+            if (pointCount >= MAX_POINTS) return;
+
+            prevTheta1 = theta1;
+            prevTheta2 = theta2;
+
+            theta1 += (sys.w1 - sys.k1 * Math.sin(theta1 - theta2)) * dt;
+            theta2 += (sys.w2 + sys.k2 * Math.sin(theta1 - theta2)) * dt;
+
+            // Detect Poincaré Section Crossing (th2 crosses a multiple of 2*PI)
+            let currentRev = Math.floor(theta2 / (2 * Math.PI));
+            if (currentRev > revCount) {
+                revCount = currentRev;
+                
+                // Linear interpolation to find exact theta1 at the crossing boundary
+                let targetTheta2 = currentRev * 2 * Math.PI;
+                let fraction = (targetTheta2 - prevTheta2) / (theta2 - prevTheta2);
+                let exactTheta1 = prevTheta1 + fraction * (theta1 - prevTheta1);
+
+                // Add a dot at the intersection
+                let dotPos = getTorusPosition(exactTheta1, targetTheta2);
+                let dot = new THREE.Mesh(dotGeo, dotMat);
+                dot.position.copy(dotPos);
+                dotsGroup.add(dot);
+                
+                intersectionCount++;
+                document.getElementById('dot-counter').innerText = `Poincaré Intersections: ${intersectionCount}`;
+            }
+
+            const pos = getTorusPosition(theta1, theta2);
+            currentMarker.position.copy(pos);
+            positions[pointCount * 3] = pos.x; 
+            positions[pointCount * 3 + 1] = pos.y; 
+            positions[pointCount * 3 + 2] = pos.z;
+            pointCount++;
+            
+            lineGeo.attributes.position.needsUpdate = true;
+            lineGeo.setDrawRange(0, pointCount);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            // Run physics slightly faster than render frame rate
+            for(let i=0; i<6; i++) {
+                updatePhysics();
+            }
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // --- UI Binding ---
+        const uiElements = ['w1', 'w2', 'k1', 'k2'];
+        uiElements.forEach(id => {
+            document.getElementById(id).addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                document.getElementById(`${id}-val`).innerText = val.toFixed(2);
+                sys[id] = val; 
+                resetTrajectory();
+            });
+        });
+
+        document.getElementById('clear-btn').addEventListener('click', resetTrajectory);
+        
+        function setParams(nw1, nw2, nk1, nk2) {
+            document.getElementById('w1').value = nw1; 
+            document.getElementById('w2').value = nw2;
+            document.getElementById('k1').value = nk1; 
+            document.getElementById('k2').value = nk2;
+            uiElements.forEach(id => document.getElementById(id).dispatchEvent(new Event('input')));
+        }
+
+        document.getElementById('preset-quasi').addEventListener('click', () => setParams(1.41, 1.0, 0, 0));
+        document.getElementById('preset-trefoil').addEventListener('click', () => setParams(3.0, 2.0, 0, 0));
+        document.getElementById('preset-lock').addEventListener('click', () => setParams(1.5, 1.0, 0.8, 0.8));
+
+        // Handle browser window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix(); 
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+            syncUIState();
+        });
+
+        // Start animation loop
+        animate();
+    </script>
+</body>
+</html>

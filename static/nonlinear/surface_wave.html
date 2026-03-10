@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Surface Wave Shoaling Demo</title>
+    <style>
+        :root {
+            --bg-top: #dff3ff;
+            --bg-bottom: #eef6fb;
+            --ink: #102033;
+            --muted: #4d667d;
+            --panel: rgba(255, 255, 255, 0.88);
+            --panel-border: rgba(16, 32, 51, 0.12);
+            --accent: #0f9dd8;
+            --accent-2: #1368b3;
+            --sand: #c9c3b8;
+            --bed: #8ea3b2;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: "Avenir Next", "Segoe UI", sans-serif;
+            color: var(--ink);
+            background: linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
+        }
+
+        #scene {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100vh;
+            height: 100dvh;
+            display: block;
+            touch-action: none;
+        }
+
+        #panel {
+            position: absolute;
+            top: max(18px, env(safe-area-inset-top));
+            left: max(18px, env(safe-area-inset-left));
+            z-index: 10;
+            width: min(360px, calc(100vw - env(safe-area-inset-left) - env(safe-area-inset-right) - 36px));
+            padding: 18px;
+            border-radius: 22px;
+            background: var(--panel);
+            border: 1px solid var(--panel-border);
+            backdrop-filter: blur(18px);
+            box-shadow: 0 20px 50px rgba(18, 36, 56, 0.16);
+            max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 36px);
+            overflow: auto;
+            transition: transform 0.25s ease, opacity 0.25s ease;
+        }
+
+        #panel-toggle {
+            position: absolute;
+            top: max(12px, env(safe-area-inset-top));
+            right: max(12px, env(safe-area-inset-right));
+            z-index: 20;
+            display: none;
+            border: 1px solid rgba(16, 32, 51, 0.12);
+            background: rgba(255, 255, 255, 0.88);
+            color: var(--ink);
+            border-radius: 999px;
+            padding: 10px 14px;
+            font: inherit;
+            font-weight: 700;
+            box-shadow: 0 12px 24px rgba(18, 36, 56, 0.12);
+        }
+
+        h1 {
+            margin: 0 0 6px;
+            font-size: 1.7rem;
+            line-height: 1;
+            letter-spacing: -0.03em;
+        }
+
+        .subtitle {
+            margin: 0 0 16px;
+            color: var(--muted);
+            font-size: 0.92rem;
+            line-height: 1.45;
+        }
+
+        .equation {
+            margin-bottom: 16px;
+            padding: 12px 14px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, rgba(15, 157, 216, 0.1), rgba(19, 104, 179, 0.06));
+            border: 1px solid rgba(15, 157, 216, 0.12);
+            color: #14304b;
+        }
+
+        .equation-label {
+            margin-bottom: 10px;
+            font-size: 0.74rem;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .equation-line {
+            margin: 6px 0;
+            font-family: "Times New Roman", Georgia, serif;
+            font-size: 1.25rem;
+            font-style: italic;
+            letter-spacing: -0.01em;
+        }
+
+        .equation-note {
+            margin-top: 10px;
+            font-size: 0.82rem;
+            line-height: 1.45;
+            color: #24425f;
+        }
+
+        .control {
+            margin-bottom: 14px;
+        }
+
+        label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+            font-weight: 700;
+        }
+
+        .value {
+            font-family: "SFMono-Regular", Consolas, monospace;
+            color: var(--accent-2);
+        }
+
+        input[type="range"] {
+            width: 100%;
+            accent-color: var(--accent);
+        }
+
+        .toggle-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin: 16px 0;
+            padding: 12px 14px;
+            border-radius: 14px;
+            background: rgba(16, 32, 51, 0.05);
+        }
+
+        .toggle-row input {
+            width: 18px;
+            height: 18px;
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+        .metric {
+            padding: 12px;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.55);
+            border: 1px solid rgba(16, 32, 51, 0.08);
+        }
+
+        .metric strong {
+            display: block;
+            margin-bottom: 3px;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--muted);
+        }
+
+        .metric span {
+            font-size: 1rem;
+            font-weight: 700;
+        }
+
+        .note {
+            margin-top: 14px;
+            font-size: 0.82rem;
+            line-height: 1.5;
+            color: var(--muted);
+        }
+
+        @media (max-width: 760px) {
+            #panel-toggle {
+                display: block;
+            }
+
+            #panel {
+                top: max(8px, env(safe-area-inset-top));
+                left: max(8px, env(safe-area-inset-left));
+                right: max(8px, env(safe-area-inset-right));
+                width: auto;
+                padding: 16px;
+                max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 16px);
+            }
+
+            body.controls-collapsed #panel {
+                transform: translateY(calc(-100% - 24px));
+                opacity: 0;
+                pointer-events: none;
+            }
+
+            h1 {
+                font-size: 1.35rem;
+            }
+
+            .subtitle, .note {
+                font-size: 0.84rem;
+            }
+
+            .equation-line {
+                font-size: 1.05rem;
+            }
+
+            .equation-note {
+                font-size: 0.78rem;
+            }
+
+            .metrics {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="scene"></canvas>
+
+    <button id="panel-toggle" type="button" aria-expanded="false">Controls</button>
+
+    <div id="panel">
+        <h1>Surface Wave Shoaling</h1>
+        <p class="subtitle">
+            Linear wave theory over a sloping seabed. Offshore wave energy moves shoreward, wavelength shortens, and wave height grows as the depth decreases.
+        </p>
+
+        <div class="equation">
+            <div class="equation-label">Linear Wave Model</div>
+            <div class="equation-line">&omega;<sup>2</sup> = gk tanh(kh)</div>
+            <div class="equation-line">H(x) &asymp; H<sub>0</sub> sqrt(c<sub>g,0</sub> / c<sub>g</sub>(x))</div>
+            <div class="equation-note">Breaking option: H &le; &gamma; h with &gamma; = 0.78.</div>
+        </div>
+
+        <div class="control">
+            <label for="height-slider">Wave Height <span id="height-value" class="value">1.6 m</span></label>
+            <input id="height-slider" type="range" min="0.4" max="4.0" step="0.1" value="1.6">
+        </div>
+
+        <div class="control">
+            <label for="period-slider">Wave Period T <span id="period-value" class="value">9.0 s</span></label>
+            <input id="period-slider" type="range" min="4" max="16" step="0.5" value="9">
+        </div>
+
+        <div class="control">
+            <label for="slope-slider">Seabed Slope <span id="slope-value" class="value">1:40</span></label>
+            <input id="slope-slider" type="range" min="20" max="90" step="1" value="40">
+        </div>
+
+        <div class="toggle-row">
+            <span>Enable breaking limiter + foam</span>
+            <input id="breaking-toggle" type="checkbox" checked>
+        </div>
+
+        <div class="metrics">
+            <div class="metric">
+                <strong>Deep Water L</strong>
+                <span id="metric-l0">0 m</span>
+            </div>
+            <div class="metric">
+                <strong>Deep Water c</strong>
+                <span id="metric-c0">0 m/s</span>
+            </div>
+            <div class="metric">
+                <strong>Shallow c</strong>
+                <span id="metric-cs">0 m/s</span>
+            </div>
+            <div class="metric">
+                <strong>Breaker Zone</strong>
+                <span id="metric-break">Off</span>
+            </div>
+        </div>
+
+        <div class="note">
+            This first version keeps the physics intentionally simple: monochromatic linear waves, shoaling from group-velocity change, and an optional breaker cap near the coast.
+        </div>
+    </div>
+
+    <script>
+        const G = 9.81;
+        const DEEP_DEPTH = 18;
+        const SLOPE_START = 180;
+        const BEACH_WIDTH = 80;
+        const MIN_DEPTH = 0.25;
+        const BREAK_GAMMA = 0.78;
+
+        const canvas = document.getElementById('scene');
+        const ctx = canvas.getContext('2d');
+
+        const ui = {
+            height: document.getElementById('height-slider'),
+            period: document.getElementById('period-slider'),
+            slope: document.getElementById('slope-slider'),
+            breaking: document.getElementById('breaking-toggle'),
+            heightValue: document.getElementById('height-value'),
+            periodValue: document.getElementById('period-value'),
+            slopeValue: document.getElementById('slope-value'),
+            l0: document.getElementById('metric-l0'),
+            c0: document.getElementById('metric-c0'),
+            cs: document.getElementById('metric-cs'),
+            breaker: document.getElementById('metric-break')
+        };
+
+        const panelToggle = document.getElementById('panel-toggle');
+
+        let model = null;
+        let cssWidth = 0;
+        let cssHeight = 0;
+        let wasMobileViewport = window.innerWidth <= 760;
+
+        function clamp(value, min, max) {
+            return Math.max(min, Math.min(max, value));
+        }
+
+        function formatMeters(value) {
+            return value.toFixed(1) + " m";
+        }
+
+        function formatSpeed(value) {
+            return value.toFixed(2) + " m/s";
+        }
+
+        function isMobileViewport() {
+            return window.innerWidth <= 760;
+        }
+
+        function syncMobilePanel(forceCollapse = false) {
+            const mobile = isMobileViewport();
+
+            if (mobile) {
+                panelToggle.style.display = "block";
+                if (forceCollapse || !wasMobileViewport) {
+                    document.body.classList.add("controls-collapsed");
+                }
+            } else {
+                panelToggle.style.display = "none";
+                document.body.classList.remove("controls-collapsed");
+            }
+
+            panelToggle.textContent = document.body.classList.contains("controls-collapsed") ? "Controls" : "Hide";
+            panelToggle.setAttribute("aria-expanded", String(!document.body.classList.contains("controls-collapsed")));
+            wasMobileViewport = mobile;
+        }
+
+        function resizeCanvas() {
+            const rect = canvas.getBoundingClientRect();
+            const dpr = Math.min(window.devicePixelRatio || 1, 2);
+            cssWidth = rect.width;
+            cssHeight = rect.height;
+            canvas.width = Math.round(rect.width * dpr);
+            canvas.height = Math.round(rect.height * dpr);
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        }
+
+        function solveWaveNumber(omega, depth) {
+            const h = Math.max(depth, MIN_DEPTH);
+            let k = h > 6 ? (omega * omega) / G : omega / Math.sqrt(G * h);
+
+            for (let i = 0; i < 12; i++) {
+                const kh = k * h;
+                const tanhKh = Math.tanh(kh);
+                const sechKh = 1 / Math.cosh(kh);
+                const f = G * k * tanhKh - omega * omega;
+                const df = G * tanhKh + G * k * h * sechKh * sechKh;
+                k -= f / df;
+                if (!Number.isFinite(k) || k <= 0) {
+                    k = omega / Math.sqrt(G * h);
+                    break;
+                }
+            }
+
+            return k;
+        }
+
+        function groupFactor(k, depth) {
+            const twoKh = 2 * k * depth;
+            if (twoKh > 20) {
+                return 0.5;
+            }
+            return 0.5 * (1 + twoKh / Math.sinh(twoKh));
+        }
+
+        function depthAt(x, shoreX, slopeRatio) {
+            if (x <= SLOPE_START) {
+                return DEEP_DEPTH;
+            }
+            if (x >= shoreX) {
+                return 0;
+            }
+            return Math.max(0, DEEP_DEPTH - (x - SLOPE_START) / slopeRatio);
+        }
+
+        function rebuildModel() {
+            const height0 = parseFloat(ui.height.value);
+            const period = parseFloat(ui.period.value);
+            const slopeRatio = parseFloat(ui.slope.value);
+            const breakingEnabled = ui.breaking.checked;
+
+            const omega = (2 * Math.PI) / period;
+            const slopeRun = DEEP_DEPTH * slopeRatio;
+            const shoreX = SLOPE_START + slopeRun;
+            const domainLength = shoreX + BEACH_WIDTH;
+            const sampleCount = 320;
+            const dx = shoreX / (sampleCount - 1);
+            const samples = [];
+
+            let phaseIntegral = 0;
+            let breakerIndex = -1;
+            let deepWave = null;
+
+            for (let i = 0; i < sampleCount; i++) {
+                const x = i * dx;
+                const depth = Math.max(depthAt(x, shoreX, slopeRatio), MIN_DEPTH);
+                const k = solveWaveNumber(omega, depth);
+                const c = omega / k;
+                const cg = groupFactor(k, depth) * c;
+
+                if (!deepWave) {
+                    deepWave = { cg, c, L: (2 * Math.PI) / k };
+                }
+
+                if (i > 0) {
+                    phaseIntegral += 0.5 * (samples[i - 1].k + k) * dx;
+                }
+
+                const linearHeight = height0 * Math.sqrt(deepWave.cg / cg);
+                if (breakerIndex === -1 && linearHeight > BREAK_GAMMA * depth && x > SLOPE_START + 0.08 * slopeRun) {
+                    breakerIndex = i;
+                }
+
+                samples.push({
+                    x,
+                    depth,
+                    k,
+                    c,
+                    cg,
+                    phase: phaseIntegral,
+                    linearHeight,
+                    height: linearHeight
+                });
+            }
+
+            if (breakingEnabled && breakerIndex !== -1) {
+                const breakX = samples[breakerIndex].x;
+                const remaining = Math.max(shoreX - breakX, 1);
+
+                for (let i = breakerIndex; i < samples.length; i++) {
+                    const sample = samples[i];
+                    const limit = BREAK_GAMMA * sample.depth;
+                    const shoreFactor = clamp((shoreX - sample.x) / remaining, 0, 1);
+                    sample.height = Math.min(sample.linearHeight, limit) * Math.pow(shoreFactor, 0.35);
+                }
+            }
+
+            let shallowSpeed = samples[samples.length - 1].c;
+            for (const sample of samples) {
+                if (sample.depth <= 2) {
+                    shallowSpeed = sample.c;
+                    break;
+                }
+            }
+
+            model = {
+                height0,
+                period,
+                slopeRatio,
+                breakingEnabled,
+                omega,
+                shoreX,
+                domainLength,
+                samples,
+                deepWave,
+                shallowSpeed,
+                breakerIndex
+            };
+
+            ui.heightValue.textContent = height0.toFixed(1) + " m";
+            ui.periodValue.textContent = period.toFixed(1) + " s";
+            ui.slopeValue.textContent = "1:" + Math.round(slopeRatio);
+            ui.l0.textContent = formatMeters(deepWave.L);
+            ui.c0.textContent = formatSpeed(deepWave.c);
+            ui.cs.textContent = formatSpeed(shallowSpeed);
+            ui.breaker.textContent = breakerIndex === -1 ? "Offshore stable" : (samples[breakerIndex].x / shoreX * 100).toFixed(0) + "% to shore";
+        }
+
+        function drawBackground(width, height) {
+            const sky = ctx.createLinearGradient(0, 0, 0, height);
+            sky.addColorStop(0, "#d7eefb");
+            sky.addColorStop(0.45, "#bfe1f2");
+            sky.addColorStop(1, "#f1ece2");
+            ctx.fillStyle = sky;
+            ctx.fillRect(0, 0, width, height);
+
+            ctx.globalAlpha = 0.06;
+            ctx.strokeStyle = "#0f4067";
+            ctx.lineWidth = 1;
+            for (let x = 0; x <= width; x += 48) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, height);
+                ctx.stroke();
+            }
+            ctx.globalAlpha = 1;
+        }
+
+        function drawScene(timeSeconds) {
+            if (!model) {
+                return;
+            }
+
+            const width = cssWidth;
+            const height = cssHeight;
+            const leftPad = Math.max(20, width * 0.045);
+            const rightPad = Math.max(18, width * 0.04);
+            const topPad = Math.max(26, height * 0.08);
+            const bottomPad = Math.max(24, height * 0.1);
+            const drawWidth = width - leftPad - rightPad;
+            const waterlineY = topPad + height * 0.23;
+            const depthScale = Math.min((height - waterlineY - bottomPad - 24) / DEEP_DEPTH, 18);
+
+            const mapX = (x) => leftPad + (x / model.domainLength) * drawWidth;
+            const bedYForSample = (sample) => waterlineY + sample.depth * depthScale;
+            const shoreScreenX = mapX(model.shoreX);
+
+            drawBackground(width, height);
+
+            const bedPath = new Path2D();
+            bedPath.moveTo(leftPad, height);
+            bedPath.lineTo(leftPad, waterlineY + DEEP_DEPTH * depthScale);
+            for (const sample of model.samples) {
+                bedPath.lineTo(mapX(sample.x), bedYForSample(sample));
+            }
+            bedPath.lineTo(shoreScreenX + drawWidth * 0.08, waterlineY - 28);
+            bedPath.lineTo(width + 10, waterlineY - 14);
+            bedPath.lineTo(width + 10, height + 10);
+            bedPath.closePath();
+
+            const bedGradient = ctx.createLinearGradient(0, waterlineY, 0, height);
+            bedGradient.addColorStop(0, "#c0cad2");
+            bedGradient.addColorStop(0.65, "#9aabb7");
+            bedGradient.addColorStop(1, "#8f9da6");
+            ctx.fillStyle = bedGradient;
+            ctx.fill(bedPath);
+
+            const surfacePoints = [];
+            const foamSegments = [];
+            let foamSegment = null;
+
+            for (let i = 0; i < model.samples.length; i++) {
+                const sample = model.samples[i];
+                const phase = model.omega * timeSeconds - sample.phase;
+                const amplitudePx = 0.5 * sample.height * depthScale * 0.5;
+                const eta = amplitudePx * Math.sin(phase);
+                const crestSignal = Math.sin(phase);
+                const x = mapX(sample.x);
+                const y = waterlineY + eta;
+                surfacePoints.push({ x, y });
+
+                const breakingHere = model.breakingEnabled && model.breakerIndex !== -1 && i >= model.breakerIndex;
+                if (breakingHere && crestSignal > 0.9) {
+                    if (!foamSegment) {
+                        foamSegment = [];
+                    }
+                    foamSegment.push({ x, y });
+                } else if (foamSegment && foamSegment.length > 1) {
+                    foamSegments.push(foamSegment);
+                    foamSegment = null;
+                } else {
+                    foamSegment = null;
+                }
+            }
+            if (foamSegment && foamSegment.length > 1) {
+                foamSegments.push(foamSegment);
+            }
+
+            const waterPath = new Path2D();
+            waterPath.moveTo(leftPad, bedYForSample(model.samples[0]));
+            waterPath.lineTo(surfacePoints[0].x, surfacePoints[0].y);
+            for (const point of surfacePoints) {
+                waterPath.lineTo(point.x, point.y);
+            }
+            waterPath.lineTo(shoreScreenX, waterlineY);
+            for (let i = model.samples.length - 1; i >= 0; i--) {
+                const sample = model.samples[i];
+                waterPath.lineTo(mapX(sample.x), bedYForSample(sample));
+            }
+            waterPath.closePath();
+
+            const waterGradient = ctx.createLinearGradient(0, waterlineY, 0, height);
+            waterGradient.addColorStop(0, "rgba(65, 177, 232, 0.78)");
+            waterGradient.addColorStop(0.58, "rgba(21, 137, 205, 0.92)");
+            waterGradient.addColorStop(1, "rgba(14, 89, 162, 0.98)");
+            ctx.fillStyle = waterGradient;
+            ctx.fill(waterPath);
+
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.65)";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(surfacePoints[0].x, surfacePoints[0].y);
+            for (const point of surfacePoints) {
+                ctx.lineTo(point.x, point.y);
+            }
+            ctx.stroke();
+
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
+            ctx.lineWidth = 3;
+            for (const segment of foamSegments) {
+                ctx.beginPath();
+                ctx.moveTo(segment[0].x, segment[0].y - 2);
+                for (const point of segment) {
+                    ctx.lineTo(point.x, point.y - 2);
+                }
+                ctx.stroke();
+            }
+
+            if (model.breakerIndex !== -1) {
+                const breakerSample = model.samples[model.breakerIndex];
+                const breakerX = mapX(breakerSample.x);
+                ctx.setLineDash([6, 6]);
+                ctx.strokeStyle = "rgba(16, 32, 51, 0.35)";
+                ctx.beginPath();
+                ctx.moveTo(breakerX, topPad - 8);
+                ctx.lineTo(breakerX, height - bottomPad + 4);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                ctx.fillStyle = "rgba(16, 32, 51, 0.78)";
+                ctx.font = "700 12px Avenir Next, sans-serif";
+                ctx.fillText("Breaker", breakerX + 8, topPad + 8);
+            }
+
+            const orbitStations = [0.14, 0.48, 0.78];
+            const orbitDepthFractions = [0.14, 0.34, 0.58, 0.82];
+            for (const ratio of orbitStations) {
+                const idx = Math.floor(ratio * (model.samples.length - 1));
+                const sample = model.samples[idx];
+                const x = mapX(sample.x);
+                const kh = sample.k * sample.depth;
+                const surfaceRadiusX = clamp(sample.height * 10, 8, 22);
+                const surfaceRadiusY = clamp(surfaceRadiusX * Math.tanh(kh), 4, surfaceRadiusX);
+                const orbitPhase = model.omega * timeSeconds - sample.phase;
+
+                ctx.strokeStyle = "rgba(67, 78, 170, 0.68)";
+                ctx.lineWidth = 1.5;
+                for (let j = 0; j < orbitDepthFractions.length; j++) {
+                    const fraction = orbitDepthFractions[j];
+                    const localDepth = sample.depth * fraction;
+                    const z = -localDepth;
+                    const orbitY = waterlineY + localDepth * depthScale;
+                    const decayX = Math.cosh(sample.k * (z + sample.depth)) / Math.cosh(kh);
+                    const sinhKh = Math.sinh(kh);
+                    const decayY = sinhKh === 0 ? 0 : Math.sinh(sample.k * (z + sample.depth)) / sinhKh;
+                    const orbitalRadiusX = Math.max(surfaceRadiusX * decayX, 2.5);
+                    const orbitalRadiusY = Math.max(surfaceRadiusY * decayY, 1.4);
+                    const theta = orbitPhase;
+                    const particleX = x + orbitalRadiusX * Math.cos(theta);
+                    const particleY = orbitY - orbitalRadiusY * Math.sin(theta);
+                    const tangentX = -orbitalRadiusX * Math.sin(theta);
+                    const tangentY = -orbitalRadiusY * Math.cos(theta);
+                    const tangentLength = Math.hypot(tangentX, tangentY) || 1;
+                    const dirX = tangentX / tangentLength;
+                    const dirY = tangentY / tangentLength;
+                    const arrowSize = clamp(orbitalRadiusX * 0.28, 4, 7);
+
+                    ctx.beginPath();
+                    ctx.ellipse(x, orbitY, orbitalRadiusX, orbitalRadiusY, 0, 0, Math.PI * 2);
+                    ctx.stroke();
+
+                    ctx.fillStyle = "rgba(67, 78, 170, 0.12)";
+                    ctx.beginPath();
+                    ctx.arc(particleX, particleY, 4, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.strokeStyle = "rgba(67, 78, 170, 0.9)";
+                    ctx.beginPath();
+                    ctx.moveTo(particleX - dirX * (arrowSize + 5), particleY - dirY * (arrowSize + 5));
+                    ctx.lineTo(particleX + dirX * 2, particleY + dirY * 2);
+                    ctx.stroke();
+
+                    ctx.beginPath();
+                    ctx.moveTo(particleX + dirX * 2, particleY + dirY * 2);
+                    ctx.lineTo(
+                        particleX + dirX * 2 - dirX * arrowSize - dirY * (arrowSize * 0.7),
+                        particleY + dirY * 2 - dirY * arrowSize + dirX * (arrowSize * 0.7)
+                    );
+                    ctx.lineTo(
+                        particleX + dirX * 2 - dirX * arrowSize + dirY * (arrowSize * 0.7),
+                        particleY + dirY * 2 - dirY * arrowSize - dirX * (arrowSize * 0.7)
+                    );
+                    ctx.closePath();
+                    ctx.fillStyle = "rgba(67, 78, 170, 0.9)";
+                    ctx.fill();
+                }
+            }
+
+            ctx.strokeStyle = "rgba(16, 32, 51, 0.16)";
+            ctx.lineWidth = 1.2;
+            ctx.beginPath();
+            ctx.moveTo(leftPad, waterlineY);
+            ctx.lineTo(shoreScreenX, waterlineY);
+            ctx.stroke();
+
+            const deepBoundary = mapX(SLOPE_START);
+            const shallowBoundary = mapX(SLOPE_START + 0.65 * (model.shoreX - SLOPE_START));
+            ctx.setLineDash([8, 6]);
+            ctx.strokeStyle = "rgba(16, 32, 51, 0.22)";
+            ctx.beginPath();
+            ctx.moveTo(deepBoundary, topPad);
+            ctx.lineTo(deepBoundary, height - bottomPad);
+            ctx.moveTo(shallowBoundary, topPad);
+            ctx.lineTo(shallowBoundary, height - bottomPad);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            ctx.fillStyle = "#0f2238";
+            ctx.font = "700 14px Avenir Next, sans-serif";
+            ctx.fillText("OPEN SEA", leftPad + 8, topPad);
+            ctx.fillText("TRANSITION", deepBoundary + 14, height - bottomPad - 18);
+            ctx.fillText("SHALLOW WATER", shallowBoundary + 14, topPad);
+
+            ctx.font = "700 12px Avenir Next, sans-serif";
+            ctx.fillText("DEEP WATER: c ~ gT / 2pi", leftPad + 10, height - bottomPad - 58);
+            ctx.fillText("SHALLOW WATER: c ~ sqrt(g h)", shallowBoundary + 14, height - bottomPad - 58);
+
+            ctx.strokeStyle = "rgba(16, 32, 51, 0.48)";
+            ctx.lineWidth = 1.5;
+            const arrowY = waterlineY - 22;
+            for (let i = 0; i < 3; i++) {
+                const startX = leftPad + 20 + i * 54;
+                ctx.beginPath();
+                ctx.moveTo(startX, arrowY);
+                ctx.lineTo(startX + 34, arrowY);
+                ctx.lineTo(startX + 26, arrowY - 6);
+                ctx.moveTo(startX + 34, arrowY);
+                ctx.lineTo(startX + 26, arrowY + 6);
+                ctx.stroke();
+            }
+
+            ctx.fillStyle = "rgba(16, 32, 51, 0.72)";
+            ctx.font = "600 12px Avenir Next, sans-serif";
+            ctx.fillText("Wave energy propagates toward the coastline", leftPad + 8, arrowY - 10);
+        }
+
+        function animate(now) {
+            ctx.clearRect(0, 0, cssWidth, cssHeight);
+            drawScene(now * 0.001);
+            requestAnimationFrame(animate);
+        }
+
+        function handleResize() {
+            resizeCanvas();
+            syncMobilePanel();
+        }
+
+        ui.height.addEventListener("input", rebuildModel);
+        ui.period.addEventListener("input", rebuildModel);
+        ui.slope.addEventListener("input", rebuildModel);
+        ui.breaking.addEventListener("change", rebuildModel);
+
+        panelToggle.addEventListener("click", () => {
+            document.body.classList.toggle("controls-collapsed");
+            syncMobilePanel();
+        });
+
+        window.addEventListener("resize", handleResize);
+
+        resizeCanvas();
+        syncMobilePanel(true);
+        rebuildModel();
+        requestAnimationFrame(animate);
+    </script>
+</body>
+</html>
