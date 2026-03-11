@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Floquet Theory & Parametric Resonance</title>
+    
+    <script>
+      MathJax = {
+        tex: {
+          inlineMath: [['$', '$'], ['\\(', '\\)']],
+          displayMath: [['$$', '$$'], ['\\[', '\\]']]
+        },
+        svg: {
+          fontCache: 'global'
+        }
+      };
+    </script>
+    <script type="text/javascript" id="MathJax-script" async
+      src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+    </script>
+
+    <style>
+        * { box-sizing: border-box; }
+        html, body { width: 100%; height: 100%; }
+        body { margin: 0; overflow: hidden; background-color: #111; font-family: 'Segoe UI', Tahoma, sans-serif; color: #fff; }
+        #app-container { display: flex; width: 100vw; height: 100vh; position: relative; }
+        
+        /* UI Panel Styling */
+        #ui-panel { position: absolute; top: max(10px, env(safe-area-inset-top)); left: max(10px, env(safe-area-inset-left)); z-index: 10; background: rgba(20, 20, 20, 0.9); border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.5); width: min(320px, calc(100vw - env(safe-area-inset-left) - env(safe-area-inset-right) - 20px)); border: 1px solid #333; display: flex; flex-direction: column; max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 20px); }
+        #ui-header { padding: 15px; display: flex; justify-content: space-between; align-items: center; border-radius: 8px; cursor: pointer; background: rgba(40, 40, 40, 0.5); }
+        #ui-header h2 { margin: 0; font-size: 1.1rem; color: #4da6ff; }
+        #ui-toggle { color: #4da6ff; font-size: 1.2rem; user-select: none; }
+        #ui-content { padding: 0 15px 15px 15px; overflow-y: auto; }
+        .control-group { margin-bottom: 12px; }
+        label { display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 4px; }
+        input[type=range] { width: 100%; cursor: pointer; }
+        button { width: 100%; padding: 10px; background: #4da6ff; color: #000; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 5px; transition: 0.2s; }
+        button:hover { background: #3388ff; }
+        #status-box { margin-top: 15px; padding: 10px; text-align: center; font-weight: bold; border-radius: 4px; font-size: 1.1rem; letter-spacing: 1px; }
+        .stable { background-color: rgba(0, 255, 100, 0.2); color: #00ff66; border: 1px solid #00ff66; }
+        .neutral { background-color: rgba(255, 215, 0, 0.16); color: #ffd54a; border: 1px solid #ffd54a; }
+        .unstable { background-color: rgba(255, 50, 50, 0.2); color: #ff5555; border: 1px solid #ff5555; }
+        
+        /* 2x2 Grid Layout */
+        #visualization { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            grid-template-rows: 1fr 1fr; 
+            width: 100vw; 
+            height: 100vh; 
+        }
+        .canvas-wrapper { position: relative; border: 1px solid #222; overflow: hidden; }
+        canvas { display: block; width: 100%; height: 100%; }
+        .canvas-title { position: absolute; top: 15px; right: 20px; font-size: 1.2rem; font-weight: bold; color: rgba(255,255,255,0.7); pointer-events: none; z-index: 5; text-align: right;}
+        .subtitle { font-size: 0.8rem; font-weight: normal; color: #aaa; display: block; margin-top: 4px; }
+        .scale-indicator { position: absolute; bottom: 15px; left: 20px; font-size: 1rem; color: rgba(255,255,255,0.5); pointer-events: none; font-family: monospace; z-index: 5;}
+        
+        /* Text Panel Specifics */
+        .text-panel { background-color: #151515; padding: 25px 30px; overflow-y: auto; color: #ddd; font-size: 0.95rem; line-height: 1.6; }
+        .text-panel h3 { color: #fff; border-bottom: 1px solid #444; padding-bottom: 8px; margin-top: 0; }
+        .text-panel ul { padding-left: 20px; margin-top: 5px;}
+        .text-panel li { margin-bottom: 8px; }
+        .math-block { background: rgba(0,0,0,0.3); padding: 10px; border-radius: 6px; text-align: center; margin: 15px 0; border: 1px solid #333; }
+
+        @media (max-width: 900px) {
+            #visualization { 
+                grid-template-columns: 1fr; 
+                grid-template-rows: minmax(300px, 1fr) minmax(300px, 1fr) minmax(300px, 1fr) minmax(400px, auto); 
+            }
+            #ui-panel { left: max(8px, env(safe-area-inset-left)); right: max(8px, env(safe-area-inset-right)); width: auto; }
+            #ui-content { max-height: 35vh; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui-panel">
+        <div id="ui-header">
+            <h2>Floquet Stability Analysis</h2>
+            <span id="ui-toggle">▼</span>
+        </div>
+        
+        <div id="ui-content">
+            <div class="control-group">
+                <label><span>&delta; (Nat. Freq Squared):</span> <span id="delta-val">1.00</span></label>
+                <input type="range" id="delta" min="-1" max="5" step="0.01" value="1.0">
+            </div>
+            <div class="control-group">
+                <label><span>&epsilon; (Forcing Amp):</span> <span id="epsilon-val">0.00</span></label>
+                <input type="range" id="epsilon" min="0" max="5" step="0.01" value="0.0">
+            </div>
+            <div class="control-group">
+                <label><span>c (Damping):</span> <span id="c-val">0.10</span></label>
+                <input type="range" id="c" min="0" max="1" step="0.01" value="0.1">
+            </div>
+            
+            <button id="perturb-btn">Perturb System</button>
+            
+            <div id="status-box" class="stable">STABLE</div>
+            <p style="font-size: 0.8rem; color: #aaa; text-align: center; margin-top: 10px;">
+                Asymptotically stable if both |&lambda;| &lt; 1. The unit circle itself is neutral.
+            </p>
+        </div>
+    </div>
+
+    <div id="visualization">
+        <div class="canvas-wrapper" style="background-color: #050505;">
+            <div class="canvas-title">Pendulum Mechanics</div>
+            <canvas id="canvas-mech"></canvas>
+        </div>
+
+        <div class="canvas-wrapper">
+            <div class="canvas-title">Time Series: x(t)</div>
+            <div id="scale-text" class="scale-indicator">Scale: ±1.0</div>
+            <canvas id="canvas-sim"></canvas>
+        </div>
+
+        <div class="canvas-wrapper" style="background-color: #0a0a0a; cursor: crosshair;">
+            <div class="canvas-title">
+                Complex &lambda;-Plane
+                <span class="subtitle">Click anywhere to perturb (x, v)</span>
+            </div>
+            <canvas id="canvas-floquet"></canvas>
+        </div>
+
+        <div class="canvas-wrapper text-panel">
+            <h3>System Dynamics & Floquet Theory</h3>
+            
+            <p>We are visualizing a <strong>parametrically driven small-angle oscillator</strong>, which can be interpreted as the linearized form of a vertically forced pendulum near an equilibrium. For small angular displacements, $\sin x \approx x$, giving the damped <strong>Mathieu Equation</strong>:</p>
+            
+            <div class="math-block">
+                $$\frac{d^2x}{dt^2} + c \frac{dx}{dt} + (\delta + \epsilon \cos(2t))x = 0$$
+            </div>
+
+            <p>The coefficients define the physics of the system:</p>
+            <ul>
+                <li><strong>$x(t)$</strong>: The small displacement from the chosen equilibrium configuration.</li>
+                <li><strong>$c$</strong>: The linear viscous damping coefficient.</li>
+                <li><strong>$\delta$</strong>: The effective stiffness or natural frequency squared. If $\delta &lt; 0$, the linear restoring term is reversed, so the origin behaves like an inverted equilibrium.</li>
+                <li><strong>$\epsilon$</strong>: The forcing amplitude, proportional to the vertical drive of the support.</li>
+            </ul>
+
+            <p><strong>Stability Analysis:</strong> Because the system is periodic with period $T = \pi$, we use <strong>Floquet Theory</strong>. We numerically integrate the fundamental matrix over one period to find the Monodromy Matrix, $\Phi(\pi)$. The eigenvalues of this matrix are the Floquet Multipliers, $\lambda_1$ and $\lambda_2$.</p>
+            
+            <ul>
+                <li>If <strong>$|\lambda_i| < 1$</strong> for both, perturbations decay geometrically. The resting state is asymptotically stable.</li>
+                <li>If <strong>$|\lambda_i| > 1$</strong> for either, the origin becomes unstable. The system enters <em>Parametric Resonance</em>, and small perturbations grow exponentially!</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // --- UI Folding Logic ---
+        const uiHeader = document.getElementById('ui-header');
+        const uiContent = document.getElementById('ui-content');
+        const uiToggle = document.getElementById('ui-toggle');
+        let wasMobileViewport = window.innerWidth <= 900;
+        let isCollapsed = false;
+
+        function syncUIState(force = false) {
+            const isMobileViewport = window.innerWidth <= 900;
+            if (force || isMobileViewport !== wasMobileViewport) {
+                isCollapsed = isMobileViewport;
+            }
+            wasMobileViewport = isMobileViewport;
+            uiContent.style.display = isCollapsed ? 'none' : 'block';
+            uiToggle.innerText = isCollapsed ? '▼' : '▲';
+        }
+
+        uiHeader.addEventListener('click', () => {
+            isCollapsed = !isCollapsed;
+            syncUIState();
+        });
+        syncUIState(true);
+
+        // --- System State ---
+        const sys = { delta: 1.0, epsilon: 0.0, c: 0.1 };
+        const T = Math.PI; 
+        
+        let t = 0;
+        let x = 0.5, v = 0; 
+        const history = [];
+        const MAX_HIST = 6000; 
+
+        let lambda1 = {re: 0, im: 0}, lambda2 = {re: 0, im: 0};
+        let isStable = true;
+        let stabilityState = 'stable';
+        let clickFlashAlpha = 0;
+        let clickFlashPos = { x: 0, y: 0 };
+
+        // --- Canvas Setup ---
+        const canvasMech = document.getElementById('canvas-mech');
+        const ctxMech = canvasMech.getContext('2d');
+        const canvasSim = document.getElementById('canvas-sim');
+        const ctxSim = canvasSim.getContext('2d');
+        const canvasFlq = document.getElementById('canvas-floquet');
+        const ctxFlq = canvasFlq.getContext('2d');
+        const scaleText = document.getElementById('scale-text');
+
+        function resizeCanvases() {
+            const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+            canvasMech.width = Math.round(canvasMech.parentElement.clientWidth * dpr);
+            canvasMech.height = Math.round(canvasMech.parentElement.clientHeight * dpr);
+            ctxMech.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+            canvasSim.width = Math.round(canvasSim.parentElement.clientWidth * dpr);
+            canvasSim.height = Math.round(canvasSim.parentElement.clientHeight * dpr);
+            ctxSim.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+            canvasFlq.width = Math.round(canvasFlq.parentElement.clientWidth * dpr);
+            canvasFlq.height = Math.round(canvasFlq.parentElement.clientHeight * dpr);
+            ctxFlq.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+            drawFloquetPlane();
+            syncUIState();
+        }
+        window.addEventListener('resize', resizeCanvases);
+
+        // --- Interactive Perturbation via Canvas Click ---
+        canvasFlq.addEventListener('pointerdown', (e) => {
+            const rect = canvasFlq.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const clickY = e.clientY - rect.top;
+            
+            const w = canvasFlq.width;
+            const h = canvasFlq.height;
+            const cx = w / 2;
+            const cy = h / 2;
+            const radius = Math.min(w, h) * 0.35; 
+
+            // Map click position to phase space perturbation
+            // X-axis sets initial position, Y-axis sets initial velocity
+            x = (clickX - cx) / radius;
+            v = -(clickY - cy) / radius * 2.0; // Scaled slightly higher for better visual effect
+            
+            // Visual feedback
+            clickFlashAlpha = 1.0;
+            clickFlashPos = { x: clickX, y: clickY };
+
+            // Reset simulation history
+            history.length = 0;
+            t = 0;
+        });
+
+        // --- Mathematics: Floquet Theory ---
+        function matMul(t_val, Phi) {
+            const a21 = -(sys.delta + sys.epsilon * Math.cos(2 * t_val));
+            const a22 = -sys.c;
+            return [
+                Phi[2],                     
+                Phi[3],                     
+                a21 * Phi[0] + a22 * Phi[2], 
+                a21 * Phi[1] + a22 * Phi[3]  
+            ];
+        }
+
+        function calculateFloquetMultipliers() {
+            let Phi = [1, 0, 0, 1]; 
+            const steps = 100;
+            const h = T / steps;
+            let current_t = 0;
+
+            for (let i = 0; i < steps; i++) {
+                const k1 = matMul(current_t, Phi);
+                const p2 = Phi.map((p, idx) => p + 0.5 * h * k1[idx]);
+                const k2 = matMul(current_t + 0.5 * h, p2);
+                const p3 = Phi.map((p, idx) => p + 0.5 * h * k2[idx]);
+                const k3 = matMul(current_t + 0.5 * h, p3);
+                const p4 = Phi.map((p, idx) => p + h * k3[idx]);
+                const k4 = matMul(current_t + h, p4);
+
+                Phi = Phi.map((p, idx) => p + (h / 6) * (k1[idx] + 2 * k2[idx] + 2 * k3[idx] + k4[idx]));
+                current_t += h;
+            }
+
+            const Tr = Phi[0] + Phi[3];
+            const Det = Phi[0] * Phi[3] - Phi[1] * Phi[2];
+            const discriminant = Tr * Tr - 4 * Det;
+
+            if (discriminant < 0) {
+                const imaginary = Math.sqrt(-discriminant) / 2;
+                lambda1 = { re: Tr / 2, im: imaginary };
+                lambda2 = { re: Tr / 2, im: -imaginary };
+            } else {
+                const root = Math.sqrt(discriminant) / 2;
+                lambda1 = { re: Tr / 2 + root, im: 0 };
+                lambda2 = { re: Tr / 2 - root, im: 0 };
+            }
+
+            const mag1 = Math.sqrt(lambda1.re**2 + lambda1.im**2);
+            const mag2 = Math.sqrt(lambda2.re**2 + lambda2.im**2);
+            const maxMag = Math.max(mag1, mag2);
+            if (maxMag < 0.9999) {
+                stabilityState = 'stable';
+                isStable = true;
+            } else if (maxMag > 1.0001) {
+                stabilityState = 'unstable';
+                isStable = false;
+            } else {
+                stabilityState = 'neutral';
+                isStable = false;
+            }
+
+            const statusBox = document.getElementById('status-box');
+            if (stabilityState === 'stable') {
+                statusBox.innerText = "STABLE";
+                statusBox.className = "stable";
+            } else if (stabilityState === 'neutral') {
+                statusBox.innerText = "NEUTRAL";
+                statusBox.className = "neutral";
+            } else {
+                statusBox.innerText = "UNSTABLE (Resonance)";
+                statusBox.className = "unstable";
+            }
+        }
+
+        // --- Mathematics: Real-time Simulation ---
+        function rk4Step(dt) {
+            const acc = (x_val, v_val, t_val) => {
+                return -sys.c * v_val - (sys.delta + sys.epsilon * Math.cos(2 * t_val)) * x_val;
+            };
+
+            const k1x = v;
+            const k1v = acc(x, v, t);
+            const k2x = v + 0.5 * dt * k1v;
+            const k2v = acc(x + 0.5 * dt * k1x, v + 0.5 * dt * k1v, t + 0.5 * dt);
+            const k3x = v + 0.5 * dt * k2v;
+            const k3v = acc(x + 0.5 * dt * k2x, v + 0.5 * dt * k2v, t + 0.5 * dt);
+            const k4x = v + dt * k3v;
+            const k4v = acc(x + dt * k3x, v + dt * k3v, t + dt);
+
+            x += (dt / 6) * (k1x + 2 * k2x + 2 * k3x + k4x);
+            v += (dt / 6) * (k1v + 2 * k2v + 2 * k3v + k4v);
+            t += dt;
+
+            // Cap the values to prevent JS infinity crashes
+            if(Math.abs(x) > 1e6) { x = Math.sign(x) * 1e6; }
+            if(Math.abs(v) > 1e6) { v = Math.sign(v) * 1e6; }
+        }
+
+        // --- Drawing Functions ---
+        
+        // 1. Mechanical Pendulum Panel
+        function drawMech() {
+            const w = canvasMech.clientWidth;
+            const h = canvasMech.clientHeight;
+            const cx = w / 2;
+            const cy = h / 2;
+            
+            ctxMech.clearRect(0, 0, w, h);
+
+            ctxMech.strokeStyle = '#333';
+            ctxMech.lineWidth = 2;
+            ctxMech.beginPath();
+            ctxMech.moveTo(cx, cy - 60);
+            ctxMech.lineTo(cx, cy + 60);
+            ctxMech.stroke();
+
+            const pivotY = cy - 25 * sys.epsilon * Math.cos(2 * t);
+            const L = Math.min(w, h) * 0.35; 
+            const equilibriumDirection = sys.delta >= 0 ? 1 : -1;
+            const bobX = cx + L * Math.sin(x);
+            const bobY = pivotY + equilibriumDirection * L * Math.cos(x);
+
+            ctxMech.strokeStyle = stabilityState === 'stable' ? '#aaa' : (stabilityState === 'neutral' ? '#ffd54a' : '#ffaa00');
+            ctxMech.lineWidth = 3;
+            ctxMech.beginPath();
+            ctxMech.moveTo(cx, pivotY);
+            ctxMech.lineTo(bobX, bobY);
+            ctxMech.stroke();
+
+            ctxMech.fillStyle = '#4da6ff';
+            ctxMech.beginPath();
+            ctxMech.arc(cx, pivotY, 6, 0, 2 * Math.PI);
+            ctxMech.fill();
+
+            ctxMech.fillStyle = stabilityState === 'stable' ? '#00bfff' : (stabilityState === 'neutral' ? '#ffd54a' : '#ff5555');
+            ctxMech.beginPath();
+            ctxMech.arc(bobX, bobY, 12, 0, 2 * Math.PI);
+            ctxMech.fill();
+        }
+
+        // 2. Time Series Panel
+        function drawSimulationX() {
+            const w = canvasSim.clientWidth;
+            const h = canvasSim.clientHeight;
+            const cy = h / 2;
+            
+            ctxSim.clearRect(0, 0, w, h);
+
+            ctxSim.strokeStyle = '#333';
+            ctxSim.lineWidth = 1;
+            ctxSim.beginPath();
+            ctxSim.moveTo(0, cy); ctxSim.lineTo(w, cy);
+            ctxSim.stroke();
+
+            if(history.length === 0) return;
+
+            let max_val = 1.0; 
+            for (let i = 0; i < history.length; i++) {
+                if (Math.abs(history[i]) > max_val) max_val = Math.abs(history[i]);
+            }
+
+            if (max_val > 100) scaleText.innerText = "Scale: ±" + max_val.toExponential(2);
+            else scaleText.innerText = "Scale: ±" + max_val.toFixed(2);
+
+            const yScale = (h * 0.4) / max_val; 
+            const xDenom = Math.max(history.length - 1, 1);
+
+            ctxSim.beginPath();
+            for (let i = 0; i < history.length; i++) {
+                const px = (i / xDenom) * w;
+                const py = cy - history[i] * yScale;
+                if (i === 0) ctxSim.moveTo(px, py);
+                else ctxSim.lineTo(px, py);
+            }
+            ctxSim.strokeStyle = stabilityState === 'stable' ? '#00bfff' : (stabilityState === 'neutral' ? '#ffd54a' : '#ffaa00');
+            ctxSim.lineWidth = 2;
+            ctxSim.stroke();
+        }
+
+        // 3. Floquet Plane Panel
+        function drawFloquetPlane() {
+            const w = canvasFlq.clientWidth;
+            const h = canvasFlq.clientHeight;
+            const cx = w / 2;
+            const cy = h / 2;
+            const radius = Math.min(w, h) * 0.35; 
+
+            ctxFlq.clearRect(0, 0, w, h);
+
+            ctxFlq.strokeStyle = '#444';
+            ctxFlq.lineWidth = 1;
+            ctxFlq.beginPath();
+            ctxFlq.moveTo(0, cy); ctxFlq.lineTo(w, cy); 
+            ctxFlq.moveTo(cx, 0); ctxFlq.lineTo(cx, h); 
+            ctxFlq.stroke();
+            
+            ctxFlq.fillStyle = '#666';
+            ctxFlq.font = '12px Arial';
+            ctxFlq.fillText("Re \u03BB", w - 40, cy - 10);
+            ctxFlq.fillText("Im \u03BB", cx + 10, 20);
+
+            ctxFlq.beginPath();
+            ctxFlq.arc(cx, cy, radius, 0, 2 * Math.PI);
+            ctxFlq.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+            ctxFlq.lineWidth = 2;
+            ctxFlq.stroke();
+
+            const drawEig = (lambda) => {
+                const px = cx + lambda.re * radius;
+                const py = cy - lambda.im * radius; 
+                const mag = Math.sqrt(lambda.re**2 + lambda.im**2);
+                const eigColor = mag < 0.9999 ? '#00ff66' : (mag > 1.0001 ? '#ff5555' : '#ffd54a');
+                
+                ctxFlq.beginPath();
+                ctxFlq.arc(px, py, 6, 0, 2 * Math.PI);
+                ctxFlq.fillStyle = eigColor;
+                ctxFlq.fill();
+                ctxFlq.strokeStyle = '#fff';
+                ctxFlq.lineWidth = 1;
+                ctxFlq.stroke();
+                
+                ctxFlq.beginPath();
+                ctxFlq.moveTo(cx, cy);
+                ctxFlq.lineTo(px, py);
+                ctxFlq.strokeStyle = mag < 0.9999 ? 'rgba(0,255,102,0.4)' : (mag > 1.0001 ? 'rgba(255,85,85,0.4)' : 'rgba(255,213,74,0.4)');
+                ctxFlq.stroke();
+            };
+
+            drawEig(lambda1);
+            drawEig(lambda2);
+
+            // Draw interaction click flash
+            if (clickFlashAlpha > 0) {
+                ctxFlq.beginPath();
+                ctxFlq.arc(clickFlashPos.x, clickFlashPos.y, 10 + (1 - clickFlashAlpha) * 20, 0, 2 * Math.PI);
+                ctxFlq.strokeStyle = `rgba(0, 191, 255, ${clickFlashAlpha})`;
+                ctxFlq.lineWidth = 3;
+                ctxFlq.stroke();
+                clickFlashAlpha = Math.max(0, clickFlashAlpha - 0.05); // Fade out
+            }
+        }
+
+        // --- Main Loop ---
+        function animate() {
+            for(let i=0; i<4; i++) {
+                rk4Step(0.05);
+                history.push(x);
+                if (history.length > MAX_HIST) {
+                    history.shift();
+                }
+            }
+
+            drawMech();
+            drawSimulationX();
+            drawFloquetPlane();
+            requestAnimationFrame(animate);
+        }
+
+        // --- UI Binding ---
+        const uiElements = ['delta', 'epsilon', 'c'];
+        uiElements.forEach(id => {
+            document.getElementById(id).addEventListener('input', (e) => {
+                sys[id] = parseFloat(e.target.value);
+                document.getElementById(`${id}-val`).innerText = sys[id].toFixed(2);
+                calculateFloquetMultipliers();
+                drawFloquetPlane();
+            });
+        });
+
+        document.getElementById('perturb-btn').addEventListener('click', () => {
+            x = 0.5; // push the pendulum
+            v = 0;
+            history.length = 0; 
+            t = 0; 
+            clickFlashAlpha = 1.0;
+            clickFlashPos = { x: canvasFlq.clientWidth / 2 + x * (Math.min(canvasFlq.clientWidth, canvasFlq.clientHeight) * 0.35), y: canvasFlq.clientHeight / 2 };
+        });
+
+        // Initialize
+        resizeCanvases();
+        calculateFloquetMultipliers();
+        animate();
+    </script>
+</body>
+</html>
