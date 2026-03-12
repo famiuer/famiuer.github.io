@@ -25,9 +25,10 @@
 
     <style>
         :root {
+            --bg: #111111;
             --font-ui: 'Source Sans 3', 'Helvetica Neue', Arial, sans-serif;
             --font-display: 'STIX Two Text', Georgia, serif;
-            --bg: #111111;
+            --font-math: 'STIX Two Math', 'Cambria Math', 'STIX Two Text', serif;
             --panel-bg: rgba(20, 20, 20, 0.9);
             --panel-border: #333333;
             --header-bg: rgba(40, 40, 40, 0.5);
@@ -46,6 +47,7 @@
             --scale-label: rgba(255, 255, 255, 0.56);
             --mech-panel-bg: #050505;
             --floquet-panel-bg: #0a0a0a;
+            --phase-panel-bg: #08101b;
             --theme-toggle-bg: rgba(20, 20, 20, 0.92);
             --theme-toggle-border: rgba(255, 255, 255, 0.14);
         }
@@ -70,6 +72,7 @@
             --scale-label: #334155;
             --mech-panel-bg: #f8fbff;
             --floquet-panel-bg: #e7eef7;
+            --phase-panel-bg: #f8fbff;
             --theme-toggle-bg: rgba(255, 255, 255, 0.94);
             --theme-toggle-border: rgba(15, 23, 42, 0.12);
         }
@@ -82,16 +85,18 @@
         /* UI Panel Styling */
         #ui-panel { position: absolute; top: max(10px, env(safe-area-inset-top)); left: max(10px, env(safe-area-inset-left)); z-index: 10; background: var(--panel-bg); border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.18); width: min(320px, calc(100vw - env(safe-area-inset-left) - env(safe-area-inset-right) - 20px)); border: 1px solid var(--panel-border); display: flex; flex-direction: column; max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 20px); }
         #ui-header { padding: 15px; display: flex; justify-content: space-between; align-items: center; border-radius: 8px; cursor: pointer; background: var(--header-bg); }
-        #ui-header h2 { margin: 0; font-size: 1.1rem; color: var(--heading); font-family: var(--font-display); letter-spacing: -0.02em; }
+        #ui-header h2 { margin: 0; font-size: 1.1rem; color: var(--heading); font-family: var(--font-display); font-weight: 700; letter-spacing: -0.02em; }
         #ui-toggle { color: var(--heading); font-size: 1.2rem; user-select: none; }
         #theme-toggle { position: absolute; top: max(10px, env(safe-area-inset-top)); right: max(10px, env(safe-area-inset-right)); z-index: 11; width: 44px; height: 44px; border-radius: 999px; border: 1px solid var(--theme-toggle-border); background: var(--theme-toggle-bg); color: var(--text); font-size: 1.1rem; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 10px 24px rgba(15, 23, 42, 0.16); }
         #ui-content { padding: 0 15px 15px 15px; overflow-y: auto; }
         .control-group { margin-bottom: 12px; }
-        label { display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 4px; }
+        label { display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 4px; font-weight: 600; letter-spacing: -0.01em; }
+        .label-text { display: inline-flex; align-items: baseline; gap: 0.22em; }
+        .value-num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
         input[type=range] { width: 100%; cursor: pointer; }
-        button { width: 100%; padding: 10px; background: var(--button-bg); color: white; border: none; border-radius: 4px; font-weight: 600; cursor: pointer; margin-top: 5px; transition: 0.2s; font-family: var(--font-ui); }
+        button { width: 100%; padding: 10px; background: var(--button-bg); color: white; border: none; border-radius: 4px; font-weight: 600; cursor: pointer; margin-top: 5px; transition: 0.2s; font-family: var(--font-ui); letter-spacing: -0.01em; }
         button:hover { background: var(--button-hover); }
-        #status-box { margin-top: 15px; padding: 10px; text-align: center; font-weight: 700; border-radius: 4px; font-size: 1.05rem; letter-spacing: 0.08em; }
+        #status-box { margin-top: 15px; padding: 10px; text-align: center; font-weight: 700; border-radius: 4px; font-size: 1.05rem; letter-spacing: 0.12em; font-family: var(--font-ui); text-transform: uppercase; }
         .stable { background-color: rgba(0, 255, 100, 0.2); color: #00ff66; border: 1px solid #00ff66; }
         .neutral { background-color: rgba(255, 215, 0, 0.16); color: #ffd54a; border: 1px solid #ffd54a; }
         .unstable { background-color: rgba(255, 50, 50, 0.2); color: #ff5555; border: 1px solid #ff5555; }
@@ -108,25 +113,61 @@
         .canvas-wrapper { position: relative; border: 1px solid var(--canvas-border); overflow: hidden; }
         .canvas-wrapper-mech { background-color: var(--mech-panel-bg); }
         .canvas-wrapper-floquet { background-color: var(--floquet-panel-bg); cursor: crosshair; }
+        .canvas-wrapper-phase { background-color: var(--phase-panel-bg); }
         canvas { display: block; width: 100%; height: 100%; }
         .canvas-title { position: absolute; top: 15px; right: 20px; font-size: 1.2rem; font-weight: 700; color: var(--canvas-title); pointer-events: none; z-index: 5; text-align: right; font-family: var(--font-display); letter-spacing: -0.025em; line-height: 1.05;}
         .canvas-title-left { left: 20px; right: auto; text-align: left; }
-        .subtitle { font-size: 0.8rem; font-weight: 500; color: var(--canvas-subtitle); display: block; margin-top: 4px; line-height: 1.2; }
-        .scale-indicator { position: absolute; bottom: 15px; left: 20px; font-size: 1rem; color: var(--scale-label); pointer-events: none; font-family: var(--font-ui); font-weight: 600; z-index: 5;}
-        .status-note { font-size: 0.8rem; color: var(--muted); text-align: center; margin-top: 10px; line-height: 1.35; }
-        .canvas-title mjx-container,
-        .subtitle mjx-container,
-        .scale-indicator mjx-container,
-        .status-note mjx-container { margin: 0 0.03em; }
-        mjx-container { font-size: 1.03em !important; }
+        .subtitle { font-size: 0.8rem; font-weight: 500; color: var(--canvas-subtitle); display: block; margin-top: 4px; font-family: var(--font-ui); letter-spacing: -0.005em; line-height: 1.2; }
+        .scale-indicator { position: absolute; bottom: 15px; left: 20px; font-size: 1rem; color: var(--scale-label); pointer-events: none; font-family: var(--font-ui); font-weight: 600; z-index: 5; letter-spacing: 0.01em;}
+        .status-note { font-size: 0.8rem; color: var(--muted); text-align: center; margin-top: 10px; line-height: 1.35; font-weight: 500; }
+        .axis-label {
+            position: absolute;
+            color: var(--canvas-subtitle);
+            pointer-events: none;
+            z-index: 4;
+            font-family: var(--font-ui);
+            font-size: 0.95rem;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+        }
+        .axis-label-im {
+            top: 10px;
+            left: 50%;
+            transform: translate(-32px, 0);
+        }
+        .axis-label-re {
+            right: 18px;
+            top: 50%;
+            transform: translateY(calc(-50% - 14px));
+        }
+        #ui-content mjx-container[jax="CHTML"] {
+            margin: 0;
+        }
+        .canvas-title mjx-container[jax="CHTML"],
+        .subtitle mjx-container[jax="CHTML"],
+        .scale-indicator mjx-container[jax="CHTML"] {
+            margin: 0 0.03em;
+        }
+        .canvas-title mjx-container[jax="CHTML"] {
+            font-size: 0.98em !important;
+        }
+        .subtitle mjx-container[jax="CHTML"] {
+            font-size: 0.95em !important;
+        }
+        .math-text {
+            font-family: var(--font-math);
+            font-style: italic;
+            letter-spacing: 0;
+        }
+        label mjx-container[jax="CHTML"] {
+            font-size: 1.04em !important;
+            line-height: 1;
+        }
+        .status-note mjx-container[jax="CHTML"] {
+            font-size: 1em !important;
+        }
+        mjx-container { font-size: 1.04em !important; }
         
-        /* Text Panel Specifics */
-        .text-panel { background-color: var(--text-panel-bg); padding: 25px 30px; overflow-y: auto; color: var(--text-panel-text); font-size: 0.95rem; line-height: 1.6; }
-        .text-panel h3 { color: var(--text); border-bottom: 1px solid var(--panel-border); padding-bottom: 8px; margin-top: 0; }
-        .text-panel ul { padding-left: 20px; margin-top: 5px;}
-        .text-panel li { margin-bottom: 8px; }
-        .math-block { background: var(--math-bg); padding: 10px; border-radius: 6px; text-align: center; margin: 15px 0; border: 1px solid var(--math-border); }
-
         @media (max-width: 900px) {
             #visualization { 
                 grid-template-columns: 1fr; 
@@ -148,15 +189,15 @@
         
         <div id="ui-content">
             <div class="control-group">
-                <label><span>&delta; (Nat. Freq Squared):</span> <span id="delta-val">1.00</span></label>
+                <label><span class="label-text"><span>\( \delta \)</span><span>(Nat. Freq Squared)</span></span> <span id="delta-val" class="value-num">1.00</span></label>
                 <input type="range" id="delta" min="-1" max="5" step="0.01" value="1.0">
             </div>
             <div class="control-group">
-                <label><span>&epsilon; (Forcing Amp):</span> <span id="epsilon-val">0.00</span></label>
+                <label><span class="label-text"><span>\( \epsilon \)</span><span>(Forcing Amp)</span></span> <span id="epsilon-val" class="value-num">0.00</span></label>
                 <input type="range" id="epsilon" min="0" max="5" step="0.01" value="0.0">
             </div>
             <div class="control-group">
-                <label><span>c (Damping):</span> <span id="c-val">0.10</span></label>
+                <label><span class="label-text"><span>\( c \)</span><span>(Damping)</span></span> <span id="c-val" class="value-num">0.10</span></label>
                 <input type="range" id="c" min="0" max="1" step="0.01" value="0.1">
             </div>
             
@@ -164,7 +205,7 @@
             
             <div id="status-box" class="stable">STABLE</div>
             <p class="status-note">
-                Asymptotically stable if both |&lambda;| &lt; 1. The unit circle itself is neutral.
+                Asymptotically stable if both \( |\lambda| < 1 \). The unit circle itself is neutral.
             </p>
         </div>
     </div>
@@ -186,32 +227,17 @@
                 Complex \( \lambda \)-Plane
                 <span class="subtitle">Click anywhere to perturb \( (x, v) \)</span>
             </div>
+            <div class="axis-label axis-label-im">\( \mathrm{Im}\,\lambda \)</div>
+            <div class="axis-label axis-label-re">\( \mathrm{Re}\,\lambda \)</div>
             <canvas id="canvas-floquet"></canvas>
         </div>
 
-        <div class="canvas-wrapper text-panel">
-            <h3>System Dynamics & Floquet Theory</h3>
-            
-            <p>We are visualizing a <strong>parametrically driven small-angle oscillator</strong>, which can be interpreted as the linearized form of a vertically forced pendulum near an equilibrium. For small angular displacements, $\sin x \approx x$, giving the damped <strong>Mathieu Equation</strong>:</p>
-            
-            <div class="math-block">
-                $$\frac{d^2x}{dt^2} + c \frac{dx}{dt} + (\delta + \epsilon \cos(2t))x = 0$$
+        <div class="canvas-wrapper canvas-wrapper-phase">
+            <div class="canvas-title canvas-title-left">
+                Phase Portrait
+                <span id="phase-subtitle" class="subtitle">Frozen field at forcing phase <span id="phase-phase" class="math-text">0.00&pi;</span>, dots are the Poincar&eacute; map every \( \pi \).</span>
             </div>
-
-            <p>The coefficients define the physics of the system:</p>
-            <ul>
-                <li><strong>$x(t)$</strong>: The small displacement from the chosen equilibrium configuration.</li>
-                <li><strong>$c$</strong>: The linear viscous damping coefficient.</li>
-                <li><strong>$\delta$</strong>: The effective stiffness or natural frequency squared. If $\delta &lt; 0$, the linear restoring term is reversed, so the origin behaves like an inverted equilibrium.</li>
-                <li><strong>$\epsilon$</strong>: The forcing amplitude, proportional to the vertical drive of the support.</li>
-            </ul>
-
-            <p><strong>Stability Analysis:</strong> Because the system is periodic with period $T = \pi$, we use <strong>Floquet Theory</strong>. We numerically integrate the fundamental matrix over one period to find the Monodromy Matrix, $\Phi(\pi)$. The eigenvalues of this matrix are the Floquet Multipliers, $\lambda_1$ and $\lambda_2$.</p>
-            
-            <ul>
-                <li>If <strong>$|\lambda_i| < 1$</strong> for both, perturbations decay geometrically. The resting state is asymptotically stable.</li>
-                <li>If <strong>$|\lambda_i| > 1$</strong> for either, the origin becomes unstable. The system enters <em>Parametric Resonance</em>, and small perturbations grow exponentially!</li>
-            </ul>
+            <canvas id="canvas-phase"></canvas>
         </div>
     </div>
 
@@ -226,6 +252,7 @@
             dark: {
                 mechBg: '#050505',
                 floquetBg: '#0a0a0a',
+                phaseBg: '#08101b',
                 axis: '#444',
                 axisLabel: '#666',
                 unitCircle: 'rgba(255,255,255,0.4)',
@@ -242,11 +269,22 @@
                 stableRay: 'rgba(0,191,255,0.35)',
                 neutralRay: 'rgba(202,138,4,0.35)',
                 unstableRay: 'rgba(220,38,38,0.35)',
-                flash: 'rgba(0, 191, 255, %a%)'
+                flash: 'rgba(0, 191, 255, %a%)',
+                phaseAxis: '#475569',
+                phaseField: 'rgba(148,163,184,0.24)',
+                phaseCurrent: '#f8fafc',
+                phaseCurrentTrail: 'rgba(248,250,252,0.4)',
+                phaseTraceStable: 'rgba(0,191,255,0.26)',
+                phaseTraceNeutral: 'rgba(255,213,74,0.28)',
+                phaseTraceUnstable: 'rgba(255,85,85,0.24)',
+                phaseDotStable: '#7dd3fc',
+                phaseDotNeutral: '#facc15',
+                phaseDotUnstable: '#fb7185'
             },
             light: {
                 mechBg: '#f8fbff',
                 floquetBg: '#e7eef7',
+                phaseBg: '#f8fbff',
                 axis: '#94a3b8',
                 axisLabel: '#334155',
                 unitCircle: 'rgba(15,23,42,0.34)',
@@ -263,7 +301,17 @@
                 stableRay: 'rgba(3,105,161,0.42)',
                 neutralRay: 'rgba(180,83,9,0.42)',
                 unstableRay: 'rgba(193,18,31,0.38)',
-                flash: 'rgba(3, 105, 161, %a%)'
+                flash: 'rgba(3, 105, 161, %a%)',
+                phaseAxis: '#94a3b8',
+                phaseField: 'rgba(51,65,85,0.18)',
+                phaseCurrent: '#0f172a',
+                phaseCurrentTrail: 'rgba(15,23,42,0.36)',
+                phaseTraceStable: 'rgba(3,105,161,0.22)',
+                phaseTraceNeutral: 'rgba(180,83,9,0.24)',
+                phaseTraceUnstable: 'rgba(193,18,31,0.2)',
+                phaseDotStable: '#0369a1',
+                phaseDotNeutral: '#b45309',
+                phaseDotUnstable: '#b91c1c'
             }
         };
         let themeColors = themePalettes.dark;
@@ -326,7 +374,14 @@
         const ctxSim = canvasSim.getContext('2d');
         const canvasFlq = document.getElementById('canvas-floquet');
         const ctxFlq = canvasFlq.getContext('2d');
+        const canvasPhase = document.getElementById('canvas-phase');
+        const ctxPhase = canvasPhase.getContext('2d');
         const scaleText = document.getElementById('scale-text');
+        const phaseSubtitle = document.getElementById('phase-subtitle');
+        const phasePhase = document.getElementById('phase-phase');
+        const phaseHistory = [];
+        const MAX_PHASE_HIST = 800;
+        let phaseScale = 2.0;
 
         function resizeCanvases() {
             const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -342,6 +397,10 @@
             canvasFlq.width = Math.round(canvasFlq.parentElement.clientWidth * dpr);
             canvasFlq.height = Math.round(canvasFlq.parentElement.clientHeight * dpr);
             ctxFlq.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+            canvasPhase.width = Math.round(canvasPhase.parentElement.clientWidth * dpr);
+            canvasPhase.height = Math.round(canvasPhase.parentElement.clientHeight * dpr);
+            ctxPhase.setTransform(dpr, 0, 0, dpr, 0, 0);
 
             drawFloquetPlane();
             syncUIState();
@@ -371,7 +430,26 @@
 
             // Reset simulation history
             history.length = 0;
+            phaseHistory.length = 0;
             t = 0;
+        });
+
+        canvasPhase.addEventListener('pointerdown', (e) => {
+            const rect = canvasPhase.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const clickY = e.clientY - rect.top;
+            const w = canvasPhase.clientWidth;
+            const h = canvasPhase.clientHeight;
+            const cx = w / 2;
+            const cy = h / 2;
+            const plotRadius = Math.min(w, h) * 0.38;
+
+            x = ((clickX - cx) / plotRadius) * phaseScale;
+            v = (-(clickY - cy) / plotRadius) * phaseScale;
+            history.length = 0;
+            phaseHistory.length = 0;
+            clickFlashAlpha = 1.0;
+            clickFlashPos = { x: clickX, y: clickY };
         });
 
         // --- Mathematics: Floquet Theory ---
@@ -470,13 +548,204 @@
             if(Math.abs(v) > 1e6) { v = Math.sign(v) * 1e6; }
         }
 
+        function stepState(state, dt) {
+            const acc = (x_val, v_val, t_val) => {
+                return -sys.c * v_val - (sys.delta + sys.epsilon * Math.cos(2 * t_val)) * x_val;
+            };
+
+            const k1x = state.v;
+            const k1v = acc(state.x, state.v, state.t);
+            const k2x = state.v + 0.5 * dt * k1v;
+            const k2v = acc(state.x + 0.5 * dt * k1x, state.v + 0.5 * dt * k1v, state.t + 0.5 * dt);
+            const k3x = state.v + 0.5 * dt * k2v;
+            const k3v = acc(state.x + 0.5 * dt * k2x, state.v + 0.5 * dt * k2v, state.t + 0.5 * dt);
+            const k4x = state.v + dt * k3v;
+            const k4v = acc(state.x + dt * k3x, state.v + dt * k3v, state.t + dt);
+
+            state.x += (dt / 6) * (k1x + 2 * k2x + 2 * k3x + k4x);
+            state.v += (dt / 6) * (k1v + 2 * k2v + 2 * k3v + k4v);
+            state.t += dt;
+        }
+
+        function getPhaseTraceColor() {
+            if (stabilityState === 'stable') return themeColors.phaseTraceStable;
+            if (stabilityState === 'neutral') return themeColors.phaseTraceNeutral;
+            return themeColors.phaseTraceUnstable;
+        }
+
+        function getPhaseDotColor() {
+            if (stabilityState === 'stable') return themeColors.phaseDotStable;
+            if (stabilityState === 'neutral') return themeColors.phaseDotNeutral;
+            return themeColors.phaseDotUnstable;
+        }
+
+        function generatePhasePortrait() {
+            const baseRadius = stabilityState === 'unstable' ? 0.28 : 0.9;
+            const seeds = [];
+            for (let i = 0; i < 8; i++) {
+                const angle = (i / 8) * Math.PI * 2;
+                seeds.push({
+                    x: baseRadius * Math.cos(angle),
+                    v: baseRadius * Math.sin(angle),
+                    t
+                });
+            }
+
+            const traces = [];
+            const strobePoints = [];
+            const totalPeriods = stabilityState === 'unstable' ? 5 : 8;
+            const dtPortrait = 0.03;
+            const totalSteps = Math.round((totalPeriods * T) / dtPortrait);
+            let maxAbs = Math.max(1.2, Math.abs(x), Math.abs(v));
+
+            for (const seed of seeds) {
+                const state = { x: seed.x, v: seed.v, t: seed.t };
+                const path = [];
+                let nextStrobe = seed.t + T;
+
+                for (let i = 0; i < totalSteps; i++) {
+                    stepState(state, dtPortrait);
+                    if (i % 2 === 0) {
+                        path.push({ x: state.x, v: state.v });
+                    }
+                    while (state.t >= nextStrobe) {
+                        strobePoints.push({ x: state.x, v: state.v });
+                        nextStrobe += T;
+                    }
+                    maxAbs = Math.max(maxAbs, Math.abs(state.x), Math.abs(state.v));
+                    if (Math.abs(state.x) > 6 || Math.abs(state.v) > 6) {
+                        break;
+                    }
+                }
+                traces.push(path);
+            }
+
+            for (const point of phaseHistory) {
+                maxAbs = Math.max(maxAbs, Math.abs(point.x), Math.abs(point.v));
+            }
+
+            phaseScale = Math.min(4.8, Math.max(1.4, maxAbs * 1.1));
+            return { traces, strobePoints, phaseScale };
+        }
+
+        function drawArrow(ctx, x1, y1, x2, y2) {
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+
+            const angle = Math.atan2(y2 - y1, x2 - x1);
+            const headLength = 4;
+            ctx.beginPath();
+            ctx.moveTo(x2, y2);
+            ctx.lineTo(x2 - headLength * Math.cos(angle - Math.PI / 6), y2 - headLength * Math.sin(angle - Math.PI / 6));
+            ctx.lineTo(x2 - headLength * Math.cos(angle + Math.PI / 6), y2 - headLength * Math.sin(angle + Math.PI / 6));
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        function drawPhasePortrait() {
+            const w = canvasPhase.clientWidth;
+            const h = canvasPhase.clientHeight;
+            const cx = w / 2;
+            const cy = h / 2;
+            const plotRadius = Math.min(w, h) * 0.38;
+            const coeff = sys.delta + sys.epsilon * Math.cos(2 * t);
+            const portrait = generatePhasePortrait();
+            const scale = portrait.phaseScale;
+
+            ctxPhase.clearRect(0, 0, w, h);
+            ctxPhase.fillStyle = themeColors.phaseBg;
+            ctxPhase.fillRect(0, 0, w, h);
+
+            ctxPhase.strokeStyle = themeColors.phaseAxis;
+            ctxPhase.lineWidth = 1;
+            ctxPhase.beginPath();
+            ctxPhase.moveTo(0, cy);
+            ctxPhase.lineTo(w, cy);
+            ctxPhase.moveTo(cx, 0);
+            ctxPhase.lineTo(cx, h);
+            ctxPhase.stroke();
+
+            ctxPhase.fillStyle = themeColors.axisLabel;
+            ctxPhase.font = 'italic 600 17px "STIX Two Text"';
+            ctxPhase.fillText('x', w - 18, cy - 8);
+            ctxPhase.fillText('v', cx + 8, 18);
+
+            ctxPhase.strokeStyle = themeColors.phaseField;
+            ctxPhase.fillStyle = themeColors.phaseField;
+            ctxPhase.lineWidth = 1;
+            const gridN = 11;
+            for (let iy = 0; iy < gridN; iy++) {
+                for (let ix = 0; ix < gridN; ix++) {
+                    const px = ((ix / (gridN - 1)) * 2 - 1) * scale;
+                    const pv = (((gridN - 1 - iy) / (gridN - 1)) * 2 - 1) * scale;
+                    let dx = pv;
+                    let dv = -sys.c * pv - coeff * px;
+                    const mag = Math.hypot(dx, dv) || 1;
+                    const len = 12;
+                    dx = (dx / mag) * len;
+                    dv = (dv / mag) * len;
+                    const sx = cx + (px / scale) * plotRadius;
+                    const sy = cy - (pv / scale) * plotRadius;
+                    drawArrow(ctxPhase, sx, sy, sx + dx, sy - dv);
+                }
+            }
+
+            ctxPhase.strokeStyle = getPhaseTraceColor();
+            ctxPhase.lineWidth = 1.4;
+            for (const trace of portrait.traces) {
+                if (trace.length < 2) continue;
+                ctxPhase.beginPath();
+                for (let i = 0; i < trace.length; i++) {
+                    const px = cx + (trace[i].x / scale) * plotRadius;
+                    const py = cy - (trace[i].v / scale) * plotRadius;
+                    if (i === 0) ctxPhase.moveTo(px, py);
+                    else ctxPhase.lineTo(px, py);
+                }
+                ctxPhase.stroke();
+            }
+
+            ctxPhase.fillStyle = getPhaseDotColor();
+            for (const point of portrait.strobePoints) {
+                const px = cx + (point.x / scale) * plotRadius;
+                const py = cy - (point.v / scale) * plotRadius;
+                ctxPhase.beginPath();
+                ctxPhase.arc(px, py, 3, 0, 2 * Math.PI);
+                ctxPhase.fill();
+            }
+
+            if (phaseHistory.length > 1) {
+                ctxPhase.strokeStyle = themeColors.phaseCurrentTrail;
+                ctxPhase.lineWidth = 2.2;
+                ctxPhase.beginPath();
+                for (let i = 0; i < phaseHistory.length; i++) {
+                    const px = cx + (phaseHistory[i].x / scale) * plotRadius;
+                    const py = cy - (phaseHistory[i].v / scale) * plotRadius;
+                    if (i === 0) ctxPhase.moveTo(px, py);
+                    else ctxPhase.lineTo(px, py);
+                }
+                ctxPhase.stroke();
+            }
+
+            const currentPx = cx + (x / scale) * plotRadius;
+            const currentPy = cy - (v / scale) * plotRadius;
+            ctxPhase.fillStyle = themeColors.phaseCurrent;
+            ctxPhase.beginPath();
+            ctxPhase.arc(currentPx, currentPy, 5, 0, 2 * Math.PI);
+            ctxPhase.fill();
+
+            phasePhase.textContent = `${((t % T) / T).toFixed(2)}π`;
+        }
+
         // --- Drawing Functions ---
         
         // 1. Mechanical Pendulum Panel
         function drawMech() {
             const w = canvasMech.clientWidth;
             const h = canvasMech.clientHeight;
-            const cx = w / 2;
+            const desktopOffset = window.innerWidth > 900 ? Math.min(90, w * 0.16) : 0;
+            const cx = w / 2 + desktopOffset;
             const cy = h / 2;
             
             ctxMech.clearRect(0, 0, w, h);
@@ -539,10 +808,10 @@
 
             const scaleValue = max_val > 100 ? max_val.toExponential(2) : max_val.toFixed(2);
             scaleText.innerHTML = `Scale: \\( \\pm ${scaleValue} \\)`;
+
             if (window.MathJax?.typesetPromise) {
                 window.MathJax.typesetPromise([scaleText]).catch(() => {});
             }
-
             const yScale = (h * 0.4) / max_val; 
             const xDenom = Math.max(history.length - 1, 1);
 
@@ -577,11 +846,6 @@
             ctxFlq.moveTo(cx, 0); ctxFlq.lineTo(cx, h); 
             ctxFlq.stroke();
             
-            ctxFlq.fillStyle = themeColors.axisLabel;
-            ctxFlq.font = '12px Arial';
-            ctxFlq.fillText("Re \u03BB", w - 40, cy - 10);
-            ctxFlq.fillText("Im \u03BB", cx + 10, 20);
-
             ctxFlq.beginPath();
             ctxFlq.arc(cx, cy, radius, 0, 2 * Math.PI);
             ctxFlq.strokeStyle = themeColors.unitCircle;
@@ -628,14 +892,19 @@
             for(let i=0; i<4; i++) {
                 rk4Step(0.05);
                 history.push(x);
+                phaseHistory.push({ x, v });
                 if (history.length > MAX_HIST) {
                     history.shift();
+                }
+                if (phaseHistory.length > MAX_PHASE_HIST) {
+                    phaseHistory.shift();
                 }
             }
 
             drawMech();
             drawSimulationX();
             drawFloquetPlane();
+            drawPhasePortrait();
             requestAnimationFrame(animate);
         }
 
@@ -646,6 +915,7 @@
                 sys[id] = parseFloat(e.target.value);
                 document.getElementById(`${id}-val`).innerText = sys[id].toFixed(2);
                 calculateFloquetMultipliers();
+                phaseHistory.length = 0;
                 drawFloquetPlane();
             });
         });
@@ -654,6 +924,7 @@
             x = 0.5; // push the pendulum
             v = 0;
             history.length = 0; 
+            phaseHistory.length = 0;
             t = 0; 
             clickFlashAlpha = 1.0;
             clickFlashPos = { x: canvasFlq.clientWidth / 2 + x * (Math.min(canvasFlq.clientWidth, canvasFlq.clientHeight) * 0.35), y: canvasFlq.clientHeight / 2 };

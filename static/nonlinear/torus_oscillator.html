@@ -4,7 +4,57 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Poincaré Map on a Torus</title>
+    <script>
+      MathJax = {
+        tex: {
+          inlineMath: [['$', '$'], ['\\(', '\\)']]
+        },
+        svg: { fontCache: 'global' }
+      };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&family=STIX+Two+Text:wght@500;600;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --font-ui: 'Source Sans 3', 'Helvetica Neue', Arial, sans-serif;
+            --font-display: 'STIX Two Text', Georgia, serif;
+            --bg: #111827;
+            --text: #e2e8f0;
+            --panel-bg: rgba(15, 23, 42, 0.84);
+            --panel-border: rgba(148, 163, 184, 0.22);
+            --header-bg: rgba(30, 41, 59, 0.56);
+            --header-hover: rgba(51, 65, 85, 0.6);
+            --accent: #4da6ff;
+            --button-text: #020617;
+            --button-bg: #60a5fa;
+            --button-hover: #3b82f6;
+            --toggle-bg: rgba(15, 23, 42, 0.78);
+            --toggle-border: rgba(148, 163, 184, 0.24);
+            --shadow: rgba(2, 6, 23, 0.45);
+            --label: #e2e8f0;
+            --counter: #fb7185;
+        }
+
+        :root[data-theme="light"] {
+            --bg: #f4f8fb;
+            --text: #0f172a;
+            --panel-bg: rgba(255, 255, 255, 0.88);
+            --panel-border: rgba(148, 163, 184, 0.38);
+            --header-bg: rgba(226, 232, 240, 0.78);
+            --header-hover: rgba(203, 213, 225, 0.92);
+            --accent: #0f6bcb;
+            --button-text: #eff6ff;
+            --button-bg: #2563eb;
+            --button-hover: #1d4ed8;
+            --toggle-bg: rgba(255, 255, 255, 0.85);
+            --toggle-border: rgba(148, 163, 184, 0.4);
+            --shadow: rgba(15, 23, 42, 0.16);
+            --label: #1e293b;
+            --counter: #dc2626;
+        }
+
         * {
             box-sizing: border-box;
         }
@@ -17,9 +67,9 @@
         body { 
             margin: 0; 
             overflow: hidden; 
-            background-color: #111; 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            color: #fff; 
+            background-color: var(--bg); 
+            font-family: var(--font-ui); 
+            color: var(--text); 
         }
         #canvas-container { 
             width: 100vw; 
@@ -35,12 +85,12 @@
             top: max(10px, env(safe-area-inset-top)); 
             left: max(10px, env(safe-area-inset-left)); 
             z-index: 2; 
-            background: rgba(20, 20, 20, 0.85); 
+            background: var(--panel-bg); 
             border-radius: 8px; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.5); 
+            box-shadow: 0 16px 36px var(--shadow); 
             width: min(300px, calc(100vw - env(safe-area-inset-left) - env(safe-area-inset-right) - 20px)); 
             backdrop-filter: blur(5px); 
-            border: 1px solid #333; 
+            border: 1px solid var(--panel-border); 
             display: flex; 
             flex-direction: column; 
             transition: max-height 0.3s ease;
@@ -54,18 +104,20 @@
             border-radius: 8px; 
             cursor: pointer;
             user-select: none;
-            background: rgba(40, 40, 40, 0.5);
+            background: var(--header-bg);
         }
         #ui-header:hover {
-            background: rgba(60, 60, 60, 0.5);
+            background: var(--header-hover);
         }
         #ui-header h2 { 
             margin: 0; 
             font-size: 1.2rem; 
-            color: #4da6ff; 
+            color: var(--accent); 
+            font-family: var(--font-display);
+            letter-spacing: -0.02em;
         }
         #ui-toggle { 
-            color: #4da6ff; 
+            color: var(--accent); 
             font-size: 1.2rem; 
         }
         #ui-content { 
@@ -74,14 +126,18 @@
             max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 110px);
         }
         .control-group { margin-bottom: 12px; }
-        label { display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 4px; }
+        label { display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 4px; color: var(--label); font-weight: 600; }
+        #ui-content mjx-container[jax="CHTML"] {
+            margin: 0 0.03em;
+            font-size: 1.02em !important;
+        }
         input[type=range] { width: 100%; cursor: pointer; }
         button, input { touch-action: manipulation; }
         button { 
             width: 100%; 
             padding: 10px; 
-            background: #4da6ff; 
-            color: #000; 
+            background: var(--button-bg); 
+            color: var(--button-text); 
             border: none; 
             border-radius: 4px; 
             font-weight: bold; 
@@ -89,15 +145,35 @@
             margin-top: 5px; 
             transition: background 0.2s; 
         }
-        button:hover { background: #3388ff; }
+        button:hover { background: var(--button-hover); }
         .presets { display: flex; gap: 5px; margin-top: 10px; }
         .presets button { font-size: 0.8rem; padding: 6px; }
         #dot-counter { 
             margin-top: 10px; 
             font-size: 0.85rem; 
-            color: #ff5555; 
+            color: var(--counter); 
             font-weight: bold; 
             text-align: center;
+        }
+        #theme-toggle {
+            position: absolute;
+            top: max(10px, env(safe-area-inset-top));
+            right: max(10px, env(safe-area-inset-right));
+            z-index: 3;
+            width: 44px;
+            height: 44px;
+            margin: 0;
+            padding: 0;
+            display: grid;
+            place-items: center;
+            font-size: 1.1rem;
+            border-radius: 999px;
+            border: 1px solid var(--toggle-border);
+            background: var(--toggle-bg);
+            color: var(--accent);
+            box-shadow: 0 16px 36px var(--shadow);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
         }
         
         /* Mobile Specifics */
@@ -117,6 +193,7 @@
 </head>
 <body>
 
+    <button id="theme-toggle" type="button" aria-label="Toggle color scheme">☾</button>
     <div id="ui-panel">
         <div id="ui-header">
             <h2>Poincaré Section</h2>
@@ -125,19 +202,19 @@
         
         <div id="ui-content">
             <div class="control-group">
-                <label><span>&omega;<sub>1</sub> (Lat Freq):</span> <span id="w1-val">1.41</span></label>
+                <label><span>\( \omega_1 \) (Lat Freq):</span> <span id="w1-val">1.41</span></label>
                 <input type="range" id="w1" min="0" max="5" step="0.01" value="1.41">
             </div>
             <div class="control-group">
-                <label><span>&omega;<sub>2</sub> (Lon Freq):</span> <span id="w2-val">1.00</span></label>
+                <label><span>\( \omega_2 \) (Lon Freq):</span> <span id="w2-val">1.00</span></label>
                 <input type="range" id="w2" min="0" max="5" step="0.01" value="1.00">
             </div>
             <div class="control-group">
-                <label><span>K<sub>1</sub> (Coupling 1):</span> <span id="k1-val">0.00</span></label>
+                <label><span>\( K_1 \) (Coupling 1):</span> <span id="k1-val">0.00</span></label>
                 <input type="range" id="k1" min="0" max="2" step="0.01" value="0">
             </div>
             <div class="control-group">
-                <label><span>K<sub>2</sub> (Coupling 2):</span> <span id="k2-val">0.00</span></label>
+                <label><span>\( K_2 \) (Coupling 2):</span> <span id="k2-val">0.00</span></label>
                 <input type="range" id="k2" min="0" max="2" step="0.01" value="0">
             </div>
 
@@ -155,6 +232,64 @@
     <div id="canvas-container"></div>
 
     <script>
+        const THEME_KEY = 'nonlinear-demo-theme';
+        const themeToggle = document.getElementById('theme-toggle');
+        let currentTheme = 'dark';
+        let themeColors = {};
+
+        function getPreferredTheme() {
+            const storedTheme = localStorage.getItem(THEME_KEY);
+            if (storedTheme === 'light' || storedTheme === 'dark') {
+                return storedTheme;
+            }
+            return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+        }
+
+        const themePalettes = {
+            dark: {
+                sceneBg: 0x05070c,
+                fog: 0x05070c,
+                torus: 0x1d4ed8,
+                torusEmissive: 0x0b1b34,
+                torusOpacity: 0.82,
+                torusRim: 0x93c5fd,
+                torusRimOpacity: 0.34,
+                plane: 0x5aaeff,
+                planeOpacity: 0.1,
+                outline: 0x7ec8ff,
+                outlineOpacity: 0.42,
+                trajectory: 0xfbbf24,
+                trajectoryOpacity: 1,
+                trajectoryPointSize: 0.2,
+                dot: 0xff4b4b,
+                dotEmissive: 0x7a1111,
+                marker: 0xffdf74,
+                markerEmissive: 0x8a5a00,
+                sectionCurve: 0x72cfff
+            },
+            light: {
+                sceneBg: 0xf4f8fb,
+                fog: 0xf4f8fb,
+                torus: 0x1e3a8a,
+                torusEmissive: 0x1d4ed8,
+                torusOpacity: 0.84,
+                torusRim: 0x0f172a,
+                torusRimOpacity: 0.28,
+                plane: 0x1d4ed8,
+                planeOpacity: 0.08,
+                outline: 0x2563eb,
+                outlineOpacity: 0.28,
+                trajectory: 0xb45309,
+                trajectoryOpacity: 1,
+                trajectoryPointSize: 0.2,
+                dot: 0xdc2626,
+                dotEmissive: 0x7f1d1d,
+                marker: 0xeab308,
+                markerEmissive: 0x854d0e,
+                sectionCurve: 0x0891b2
+            }
+        };
+
         // --- Robust UI Folding Logic ---
         const uiHeader = document.getElementById('ui-header');
         const uiContent = document.getElementById('ui-content');
@@ -199,8 +334,8 @@
         // --- Three.js Setup ---
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x05070c);
-        scene.fog = new THREE.FogExp2(0x05070c, 0.018);
+        scene.background = new THREE.Color(themePalettes.dark.sceneBg);
+        scene.fog = new THREE.FogExp2(themePalettes.dark.fog, 0.018);
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
         camera.position.set(-15, 25, 30); // Start at an angle to see the section plane
 
@@ -238,6 +373,12 @@
         const torusMesh = new THREE.Mesh(new THREE.TorusGeometry(R, r, 64, 100), torusMat);
         torusMesh.rotation.x = Math.PI / 2;
         scene.add(torusMesh);
+        const torusEdges = new THREE.LineSegments(
+            new THREE.EdgesGeometry(torusMesh.geometry, 18),
+            new THREE.LineBasicMaterial({ color: 0x93c5fd, transparent: true, opacity: 0.34 })
+        );
+        torusEdges.rotation.copy(torusMesh.rotation);
+        scene.add(torusEdges);
 
         // Poincaré Section Plane (Half-plane at th2 = 0)
         const sectionWidth = R + r + 3;
@@ -273,6 +414,17 @@
             color: 0xffbf47, transparent: true, opacity: 0.88 
         }));
         scene.add(trajectory);
+        const trajectoryPoints = new THREE.Points(
+            lineGeo,
+            new THREE.PointsMaterial({
+                color: 0xffbf47,
+                size: 0.2,
+                sizeAttenuation: true,
+                transparent: true,
+                opacity: 1
+            })
+        );
+        scene.add(trajectoryPoints);
         let pointCount = 0;
 
         // Group to hold our Poincaré intersection dots
@@ -304,6 +456,41 @@
             new THREE.LineBasicMaterial({ color: 0x72cfff, transparent: true, opacity: 0.75 })
         );
         scene.add(sectionCurve);
+
+        function applyTheme(theme) {
+            currentTheme = theme;
+            themeColors = themePalettes[theme];
+            document.documentElement.dataset.theme = theme;
+            themeToggle.textContent = theme === 'dark' ? '☾' : '☀';
+            localStorage.setItem(THEME_KEY, theme);
+
+            scene.background.setHex(themeColors.sceneBg);
+            scene.fog.color.setHex(themeColors.fog);
+
+            torusMat.color.setHex(themeColors.torus);
+            torusMat.emissive.setHex(themeColors.torusEmissive);
+            torusMat.opacity = themeColors.torusOpacity;
+            torusEdges.material.color.setHex(themeColors.torusRim);
+            torusEdges.material.opacity = themeColors.torusRimOpacity;
+            planeMat.color.setHex(themeColors.plane);
+            planeMat.opacity = themeColors.planeOpacity;
+            sectionOutline.material.color.setHex(themeColors.outline);
+            sectionOutline.material.opacity = themeColors.outlineOpacity;
+            trajectory.material.color.setHex(themeColors.trajectory);
+            trajectory.material.opacity = themeColors.trajectoryOpacity;
+            trajectoryPoints.material.color.setHex(themeColors.trajectory);
+            trajectoryPoints.material.opacity = themeColors.trajectoryOpacity;
+            trajectoryPoints.material.size = themeColors.trajectoryPointSize;
+            dotMat.color.setHex(themeColors.dot);
+            dotMat.emissive.setHex(themeColors.dotEmissive);
+            currentMarker.material.color.setHex(themeColors.marker);
+            currentMarker.material.emissive.setHex(themeColors.markerEmissive);
+            sectionCurve.material.color.setHex(themeColors.sectionCurve);
+        }
+
+        themeToggle.addEventListener('click', () => {
+            applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
+        });
 
         function resetTrajectory() {
             pointCount = 0; theta1 = 0; theta2 = 0; 
@@ -405,6 +592,7 @@
             syncUIState();
         });
 
+        applyTheme(getPreferredTheme());
         // Start animation loop
         animate();
     </script>

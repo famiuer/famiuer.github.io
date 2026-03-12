@@ -4,13 +4,40 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Double-Well Potential Simulation</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&family=STIX+Two+Text:wght@500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
+            --font-ui: 'Source Sans 3', 'Helvetica Neue', Arial, sans-serif;
+            --font-display: 'STIX Two Text', Georgia, serif;
             --primary: #2563eb;
             --secondary: #475569;
             --bg: #f8fafc;
             --panel: #ffffff;
             --danger: #ef4444;
+            --text: #1e293b;
+            --heading: #0f172a;
+            --muted: #64748b;
+            --canvas-bg: #ffffff;
+            --note-bg: #f1f5f9;
+            --theme-button-bg: rgba(255, 255, 255, 0.88);
+            --theme-button-border: rgba(148, 163, 184, 0.35);
+        }
+
+        :root[data-theme="dark"] {
+            --primary: #7dd3fc;
+            --secondary: #94a3b8;
+            --bg: #020617;
+            --panel: #0f172a;
+            --danger: #fb7185;
+            --text: #e2e8f0;
+            --heading: #f8fafc;
+            --muted: #94a3b8;
+            --canvas-bg: #081121;
+            --note-bg: #111c2e;
+            --theme-button-bg: rgba(15, 23, 42, 0.88);
+            --theme-button-border: rgba(148, 163, 184, 0.2);
         }
 
         * {
@@ -18,21 +45,24 @@
         }
 
         body {
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-family: var(--font-ui);
             background-color: var(--bg);
-            color: #1e293b;
+            color: var(--text);
             display: flex;
             flex-direction: column;
             align-items: center;
             margin: 0;
             padding: 20px;
             min-height: 100vh;
+            position: relative;
         }
 
         h1 {
             margin-bottom: 0.5rem;
             font-size: 1.5rem;
-            color: #0f172a;
+            color: var(--heading);
+            font-family: var(--font-display);
+            letter-spacing: -0.02em;
         }
 
         .subtitle {
@@ -41,6 +71,7 @@
             margin-bottom: 1.5rem;
             max-width: 600px;
             text-align: center;
+            line-height: 1.45;
         }
 
         .main-container {
@@ -67,7 +98,7 @@
         canvas {
             border: 1px solid #e2e8f0;
             border-radius: 4px;
-            background-color: #fff;
+            background-color: var(--canvas-bg);
             cursor: crosshair;
             display: block;
             width: min(100%, 500px);
@@ -95,6 +126,7 @@
             font-size: 0.9rem;
             display: flex;
             justify-content: space-between;
+            letter-spacing: -0.01em;
         }
 
         input[type="range"] {
@@ -103,7 +135,7 @@
         }
 
         .value-display {
-            font-family: 'Courier New', monospace;
+            font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
             color: var(--primary);
         }
 
@@ -133,11 +165,18 @@
         .math-note {
             margin-top: 10px;
             padding: 10px;
-            background: #f1f5f9;
+            background: var(--note-bg);
             border-radius: 6px;
             font-size: 0.85rem;
             line-height: 1.5;
             border-left: 4px solid var(--primary);
+        }
+        .subtitle mjx-container,
+        .math-note mjx-container {
+            margin: 0 0.03em;
+        }
+        mjx-container {
+            font-size: 1.03em !important;
         }
 
         .legend {
@@ -152,6 +191,25 @@
             gap: 5px;
         }
         .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+
+        #theme-toggle {
+            position: fixed;
+            top: max(14px, env(safe-area-inset-top));
+            right: max(14px, env(safe-area-inset-right));
+            z-index: 20;
+            width: 44px;
+            height: 44px;
+            border-radius: 999px;
+            border: 1px solid var(--theme-button-border);
+            background: var(--theme-button-bg);
+            color: var(--heading);
+            font-size: 1.2rem;
+            line-height: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12);
+        }
 
         .button-row {
             flex-direction: row;
@@ -196,6 +254,8 @@
     </style>
 </head>
 <body>
+
+    <button id="theme-toggle" type="button" aria-label="Toggle color scheme">☾</button>
 
     <h1>Particle in a Double-Well Potential</h1>
     <div class="subtitle">
@@ -254,6 +314,55 @@
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 
     <script>
+        const THEME_KEY = 'nonlinear-demo-theme';
+        const themeToggle = document.getElementById('theme-toggle');
+        const themePalettes = {
+            light: {
+                axis: '#cbd5e1',
+                axisText: '#64748b',
+                contour: '#e2e8f0',
+                separatrix: '#94a3b8',
+                active: '#2563eb',
+                particle: '#ef4444',
+                potential: '#334155',
+                energyLine: '#2563eb',
+                kinetic: 'rgba(239, 68, 68, 0.5)'
+            },
+            dark: {
+                axis: '#334155',
+                axisText: '#94a3b8',
+                contour: 'rgba(148, 163, 184, 0.22)',
+                separatrix: '#64748b',
+                active: '#7dd3fc',
+                particle: '#fb7185',
+                potential: '#93c5fd',
+                energyLine: '#7dd3fc',
+                kinetic: 'rgba(251, 113, 133, 0.55)'
+            }
+        };
+        let themeColors = themePalettes.light;
+
+        function getPreferredTheme() {
+            const stored = localStorage.getItem(THEME_KEY);
+            if (stored === 'light' || stored === 'dark') return stored;
+            return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+
+        function applyTheme(theme) {
+            document.documentElement.dataset.theme = theme;
+            themeColors = themePalettes[theme];
+            themeToggle.textContent = theme === 'dark' ? '☀' : '☾';
+            themeToggle.setAttribute('aria-label', theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme');
+        }
+
+        themeToggle.addEventListener('click', () => {
+            const nextTheme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+            localStorage.setItem(THEME_KEY, nextTheme);
+            applyTheme(nextTheme);
+        });
+
+        applyTheme(getPreferredTheme());
+
         // --- Configuration ---
         const phaseCanvas = document.getElementById('phaseCanvas');
         const phaseCtx = phaseCanvas.getContext('2d');
@@ -362,7 +471,7 @@
         // --- Drawing ---
 
         function drawAxes(ctx, width, height, yPosOverride = null) {
-            ctx.strokeStyle = '#cbd5e1';
+            ctx.strokeStyle = themeColors.axis;
             ctx.lineWidth = 1;
             ctx.beginPath();
             
@@ -377,7 +486,7 @@
             ctx.stroke();
 
             // Labels
-            ctx.fillStyle = '#64748b';
+            ctx.fillStyle = themeColors.axisText;
             ctx.font = '12px Arial';
             ctx.fillText('x', width - 15, yAxisPos + 15);
             if(yPosOverride === null) ctx.fillText('y', width/2 + 5, 15);
@@ -390,7 +499,7 @@
             phaseCtx.lineWidth = 1;
             
             energies.forEach(e => {
-                phaseCtx.strokeStyle = e === 0 ? '#94a3b8' : '#e2e8f0'; // Darker for separatrix
+                phaseCtx.strokeStyle = e === 0 ? themeColors.separatrix : themeColors.contour; // Darker for separatrix
                 if (e === 0) phaseCtx.setLineDash([5, 3]);
                 else phaseCtx.setLineDash([]);
 
@@ -437,7 +546,7 @@
             }
             
             if (isActive) {
-                phaseCtx.strokeStyle = '#2563eb';
+                phaseCtx.strokeStyle = themeColors.active;
                 phaseCtx.lineWidth = 2;
             }
             phaseCtx.stroke();
@@ -445,7 +554,7 @@
 
         function drawPotentialCurve() {
             energyCtx.beginPath();
-            energyCtx.strokeStyle = '#334155';
+            energyCtx.strokeStyle = themeColors.potential;
             energyCtx.lineWidth = 2;
 
             for (let px = 0; px < energyCanvas.width; px++) {
@@ -461,7 +570,7 @@
 
         function drawEnergyLine() {
             energyCtx.beginPath();
-            energyCtx.strokeStyle = '#2563eb';
+            energyCtx.strokeStyle = themeColors.energyLine;
             energyCtx.lineWidth = 1;
             energyCtx.setLineDash([5, 5]);
             let py = energyOffsetY - currentEnergy * energyScaleY;
@@ -470,7 +579,7 @@
             energyCtx.stroke();
             energyCtx.setLineDash([]);
             
-            energyCtx.fillStyle = '#2563eb';
+            energyCtx.fillStyle = themeColors.energyLine;
             energyCtx.fillText(`E = ${currentEnergy.toFixed(2)}`, 10, py - 5);
         }
 
@@ -496,7 +605,7 @@
 
             // Draw Particle on Phase Plane
             let pScreen = toScreen(state.x, state.y);
-            phaseCtx.fillStyle = '#ef4444';
+            phaseCtx.fillStyle = themeColors.particle;
             phaseCtx.beginPath();
             phaseCtx.arc(pScreen.x, pScreen.y, 6, 0, Math.PI * 2);
             phaseCtx.fill();
@@ -516,7 +625,7 @@
             let eScreen = toEnergyScreen(state.x, potVal);
             
             // Draw potential energy bead
-            energyCtx.fillStyle = '#ef4444';
+            energyCtx.fillStyle = themeColors.particle;
             energyCtx.beginPath();
             energyCtx.arc(eScreen.x, eScreen.y, 6, 0, Math.PI * 2);
             energyCtx.fill();
@@ -524,7 +633,7 @@
             // Draw Kinetic Energy bar (Difference between E line and V curve)
             let totalEScreenY = energyOffsetY - currentEnergy * energyScaleY;
             energyCtx.beginPath();
-            energyCtx.strokeStyle = 'rgba(239, 68, 68, 0.5)';
+            energyCtx.strokeStyle = themeColors.kinetic;
             energyCtx.lineWidth = 2;
             energyCtx.moveTo(eScreen.x, eScreen.y); // From V(x)
             energyCtx.lineTo(eScreen.x, totalEScreenY); // To E

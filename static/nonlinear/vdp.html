@@ -4,13 +4,68 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Van der Pol Oscillator 3D</title>
+    <script>
+      MathJax = {
+        tex: {
+          inlineMath: [['$', '$'], ['\\(', '\\)']],
+          displayMath: [['$$', '$$'], ['\\[', '\\]']]
+        },
+        svg: { fontCache: 'global' }
+      };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&family=STIX+Two+Text:wght@500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
+            --font-ui: 'Source Sans 3', 'Helvetica Neue', Arial, sans-serif;
+            --font-display: 'STIX Two Text', Georgia, serif;
             --primary: #00f3ff;
             --secondary: #bd00ff;
             --bg: #050505;
+            --text: #e0e0e0;
+            --muted: #94a3b8;
+            --label: #cbd5e1;
             --panel-bg: rgba(10, 10, 15, 0.75);
             --border: rgba(255, 255, 255, 0.1);
+            --equation-bg: rgba(0, 0, 0, 0.3);
+            --equation-border: var(--secondary);
+            --range-track: #334155;
+            --button-bg: rgba(255, 255, 255, 0.1);
+            --button-text: #ffffff;
+            --toggle-bg: rgba(5, 5, 5, 0.78);
+            --toggle-border: rgba(255, 255, 255, 0.12);
+            --legend-text: #94a3b8;
+            --legend-x: #00f3ff;
+            --legend-y: #bd00ff;
+            --legend-cycle: #ffffff;
+            --loader-bg: #050505;
+            --loader-text: var(--primary);
+        }
+
+        :root[data-theme="light"] {
+            --primary: #0284c7;
+            --secondary: #7c3aed;
+            --bg: #edf4fb;
+            --text: #0f172a;
+            --muted: #64748b;
+            --label: #1e293b;
+            --panel-bg: rgba(255, 255, 255, 0.86);
+            --border: rgba(148, 163, 184, 0.34);
+            --equation-bg: rgba(255, 255, 255, 0.78);
+            --equation-border: #7c3aed;
+            --range-track: #cbd5e1;
+            --button-bg: rgba(148, 163, 184, 0.16);
+            --button-text: #0f172a;
+            --toggle-bg: rgba(255, 255, 255, 0.88);
+            --toggle-border: rgba(148, 163, 184, 0.38);
+            --legend-text: #475569;
+            --legend-x: #0284c7;
+            --legend-y: #7c3aed;
+            --legend-cycle: #0f172a;
+            --loader-bg: #edf4fb;
+            --loader-text: #0284c7;
         }
 
         * {
@@ -26,8 +81,8 @@
             margin: 0;
             overflow: hidden;
             background-color: var(--bg);
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            color: #e0e0e0;
+            font-family: var(--font-ui);
+            color: var(--text);
             position: relative;
         }
 
@@ -70,18 +125,39 @@
             margin: 0;
             width: auto;
             border-radius: 999px;
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            background: rgba(5, 5, 5, 0.78);
-            color: #e2e8f0;
+            border: 1px solid var(--toggle-border);
+            background: var(--toggle-bg);
+            color: var(--text);
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
             box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+        }
+        #theme-toggle {
+            position: absolute;
+            top: max(12px, env(safe-area-inset-top));
+            right: max(12px, env(safe-area-inset-right));
+            z-index: 20;
+            width: 42px;
+            height: 42px;
+            padding: 0;
+            margin: 0;
+            border-radius: 999px;
+            border: 1px solid var(--toggle-border);
+            background: var(--toggle-bg);
+            color: var(--primary);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+            display: grid;
+            place-items: center;
+            font-size: 1rem;
         }
 
         h1 {
             margin: 0 0 4px 0;
             font-size: 1.5rem;
             font-weight: 700;
+            font-family: var(--font-display);
             background: linear-gradient(90deg, var(--primary), var(--secondary));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
@@ -90,21 +166,19 @@
 
         .subtitle {
             font-size: 0.8rem;
-            color: #94a3b8;
+            color: var(--muted);
             margin-bottom: 20px;
-            font-family: monospace;
+            line-height: 1.35;
         }
 
         .equation {
-            background: rgba(0, 0, 0, 0.3);
+            background: var(--equation-bg);
             padding: 10px;
             border-radius: 8px;
             margin-bottom: 20px;
             text-align: center;
-            font-family: 'Times New Roman', serif;
-            font-style: italic;
             font-size: 1.1rem;
-            border-left: 3px solid var(--secondary);
+            border-left: 3px solid var(--equation-border);
         }
 
         /* Controls */
@@ -117,12 +191,12 @@
             justify-content: space-between;
             font-size: 0.85rem;
             font-weight: 600;
-            color: #cbd5e1;
+            color: var(--label);
             margin-bottom: 8px;
         }
 
         .value-display {
-            font-family: 'Courier New', monospace;
+            font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
             color: var(--primary);
         }
 
@@ -130,7 +204,7 @@
             -webkit-appearance: none;
             width: 100%;
             height: 6px;
-            background: #334155;
+            background: var(--range-track);
             border-radius: 3px;
             outline: none;
         }
@@ -162,8 +236,8 @@
             padding: 10px;
             border: none;
             border-radius: 6px;
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
+            background: var(--button-bg);
+            color: var(--button-text);
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s;
@@ -187,7 +261,7 @@
             border-top: 1px solid var(--border);
             font-size: 0.85rem;
             line-height: 1.5;
-            color: #a1a1aa;
+            color: var(--muted);
         }
         
         #status-text strong {
@@ -211,23 +285,28 @@
             gap: 8px;
             margin-bottom: 5px;
             font-size: 0.8rem;
-            color: #94a3b8;
-            font-family: monospace;
+            color: var(--legend-text);
+            font-family: var(--font-ui);
         }
         .dot { width: 8px; height: 8px; border-radius: 50%; box-shadow: 0 0 5px currentColor;}
+        .legend-x { color: var(--legend-x); }
+        .legend-y { color: var(--legend-y); }
+        .legend-cycle { color: var(--legend-cycle); }
 
         /* Loader */
         #loader {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--bg); z-index: 100;
+            background: var(--loader-bg); z-index: 100;
             display: flex; align-items: center; justify-content: center;
-            color: var(--primary); font-family: monospace;
+            color: var(--loader-text); font-family: var(--font-ui);
             transition: opacity 0.5s;
         }
+        .equation mjx-container { font-size: 1.05em !important; }
 
         @media (max-width: 700px) {
             #panel-toggle {
                 display: block;
+                right: max(60px, calc(env(safe-area-inset-right) + 60px));
             }
 
             #ui-panel {
@@ -283,13 +362,16 @@
 
     <div id="loader">Initializing Physics Engine...</div>
     <button id="panel-toggle" type="button" aria-expanded="false">Controls</button>
+    <button id="theme-toggle" type="button" aria-label="Toggle color scheme">☾</button>
 
     <div id="ui-panel">
         <h1>Van der Pol Oscillator</h1>
         <div class="subtitle">Nonlinear Limit Cycle Dynamics</div>
 
         <div class="equation">
-            ẍ + &mu;(x² - 1)ẋ + x = 0
+            \[
+            \ddot{x} + \mu(x^2 - 1)\dot{x} + x = 0
+            \]
         </div>
 
         <div class="control-group">
@@ -320,9 +402,9 @@
     </div>
 
     <div class="legend">
-        <div class="legend-item" style="color:#00f3ff"><span class="dot" style="background:#00f3ff"></span> Position (x) vs Velocity (y)</div>
-        <div class="legend-item" style="color:#bd00ff"><span class="dot" style="background:#bd00ff"></span> Time Evolution (Depth)</div>
-        <div class="legend-item" style="color:#fff"><span class="dot" style="background:#fff"></span> Limit Cycle Attractor</div>
+        <div class="legend-item legend-x"><span class="dot" style="background:currentColor"></span> Position (x) vs Velocity (y)</div>
+        <div class="legend-item legend-y"><span class="dot" style="background:currentColor"></span> Time Evolution (Depth)</div>
+        <div class="legend-item legend-cycle"><span class="dot" style="background:currentColor"></span> Limit Cycle Attractor</div>
     </div>
 
     <div id="canvas-container"></div>
@@ -333,6 +415,62 @@
         import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
         import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
         import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+        const THEME_KEY = 'nonlinear-demo-theme';
+        const themeToggle = document.getElementById('theme-toggle');
+        let currentTheme = 'dark';
+        let themeColors = {};
+
+        function getPreferredTheme() {
+            const storedTheme = localStorage.getItem(THEME_KEY);
+            if (storedTheme === 'light' || storedTheme === 'dark') {
+                return storedTheme;
+            }
+            return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+        }
+
+        const themePalettes = {
+            dark: {
+                sceneBg: 0x050505,
+                fog: 0x050505,
+                gridMajor: 0x334155,
+                gridMinor: 0x111827,
+                axisX: 0x22d3ee,
+                axisY: 0xa855f7,
+                head: 0xffffff,
+                glow: 0x00f3ff,
+                glowOpacity: 0.95,
+                bloomStrength: 1.2,
+                ribbonSaturation: 1.0,
+                ribbonLightness: 0.56,
+                ribbonOpacity: 0.92,
+                ribbonMinIntensity: 0.0,
+                ribbonBlending: 'additive',
+                spine: 0xf8fafc,
+                spineOpacity: 0.32,
+                spinePointSize: 0.03
+            },
+            light: {
+                sceneBg: 0xedf4fb,
+                fog: 0xedf4fb,
+                gridMajor: 0x94a3b8,
+                gridMinor: 0xcbd5e1,
+                axisX: 0x0369a1,
+                axisY: 0x6d28d9,
+                head: 0x0f172a,
+                glow: 0x0284c7,
+                glowOpacity: 0.28,
+                bloomStrength: 0.08,
+                ribbonSaturation: 0.98,
+                ribbonLightness: 0.22,
+                ribbonOpacity: 1,
+                ribbonMinIntensity: 0.55,
+                ribbonBlending: 'normal',
+                spine: 0x0f172a,
+                spineOpacity: 0.9,
+                spinePointSize: 0.06
+            }
+        };
 
         // --- Physics Engine ---
         class VanDerPol {
@@ -397,7 +535,8 @@
         // --- Scene Setup ---
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
-        scene.fog = new THREE.FogExp2(0x050505, 0.02);
+        scene.background = new THREE.Color(themePalettes.dark.sceneBg);
+        scene.fog = new THREE.FogExp2(themePalettes.dark.fog, 0.02);
 
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
         camera.position.set(6, 4, 12);
@@ -441,6 +580,7 @@
         gridHelper.rotation.x = Math.PI / 2; // Grid on XY plane (Position vs Velocity)
         gridHelper.position.z = -5; // Behind the current time
         scene.add(gridHelper);
+        const gridMaterials = Array.isArray(gridHelper.material) ? gridHelper.material : [gridHelper.material];
 
         // Axes Labels (Simulated with simple geometry lines)
         const axesGroup = new THREE.Group();
@@ -476,6 +616,25 @@
 
         const ribbon = new THREE.Mesh(ribbonGeo, ribbonMat);
         scene.add(ribbon);
+        const spinePositions = new Float32Array(config.trailLength * 3);
+        const spineGeo = new THREE.BufferGeometry();
+        spineGeo.setAttribute('position', new THREE.BufferAttribute(spinePositions, 3));
+        const spineMat = new THREE.LineBasicMaterial({
+            color: 0xffffff,
+            transparent: true,
+            opacity: 0.32
+        });
+        const spineLine = new THREE.Line(spineGeo, spineMat);
+        scene.add(spineLine);
+        const spinePointMat = new THREE.PointsMaterial({
+            color: 0xffffff,
+            size: 0.03,
+            sizeAttenuation: true,
+            transparent: true,
+            opacity: 0.32
+        });
+        const spinePoints = new THREE.Points(spineGeo, spinePointMat);
+        scene.add(spinePoints);
 
         // 3. The "Head" Particle
         const headGeo = new THREE.SphereGeometry(0.15, 16, 16);
@@ -493,6 +652,43 @@
         const glow = new THREE.Sprite(spriteMat);
         glow.scale.set(2, 2, 1);
         head.add(glow);
+
+        function applyTheme(theme) {
+            currentTheme = theme;
+            themeColors = themePalettes[theme];
+            document.documentElement.dataset.theme = theme;
+            themeToggle.textContent = theme === 'dark' ? '☾' : '☀';
+            localStorage.setItem(THEME_KEY, theme);
+
+            scene.background.setHex(themeColors.sceneBg);
+            scene.fog.color.setHex(themeColors.fog);
+            if (gridMaterials[0]?.color) {
+                gridMaterials[0].color.setHex(themeColors.gridMajor);
+            }
+            if (gridMaterials[1]?.color) {
+                gridMaterials[1].color.setHex(themeColors.gridMinor);
+            }
+            xAxisMat.color.setHex(themeColors.axisX);
+            yAxisMat.color.setHex(themeColors.axisY);
+            headMat.color.setHex(themeColors.head);
+            spriteMat.color.setHex(themeColors.glow);
+            spriteMat.opacity = themeColors.glowOpacity;
+            bloomPass.strength = themeColors.bloomStrength;
+            ribbonMat.opacity = themeColors.ribbonOpacity;
+            ribbonMat.blending = themeColors.ribbonBlending === 'additive'
+                ? THREE.AdditiveBlending
+                : THREE.NormalBlending;
+            ribbonMat.needsUpdate = true;
+            spineMat.color.setHex(themeColors.spine);
+            spineMat.opacity = themeColors.spineOpacity;
+            spinePointMat.color.setHex(themeColors.spine);
+            spinePointMat.opacity = themeColors.spineOpacity;
+            spinePointMat.size = themeColors.spinePointSize;
+        }
+
+        themeToggle.addEventListener('click', () => {
+            applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
+        });
 
 
         // --- Simulation Logic ---
@@ -527,6 +723,7 @@
         function updateRibbonGeometry() {
             const positions = ribbon.geometry.attributes.position.array;
             const colors = ribbon.geometry.attributes.color.array;
+            const spinePositions = spineGeo.attributes.position.array;
 
             // We need to construct a triangle strip.
             // For every history point, we create 2 vertices (up and down offset)
@@ -539,13 +736,13 @@
                 // Calculate color based on velocity (y) and position (x)
                 // High velocity = Purple, High position = Cyan
                 const color = new THREE.Color();
-                const intensity = 1 - (i / config.trailLength); // Fade out tail
+                const intensity = Math.max(themeColors.ribbonMinIntensity, 1 - (i / config.trailLength));
                 
                 // Color logic: Mix cyan and purple based on phase angle
                 const angle = Math.atan2(point.y, point.x);
                 // normalized 0-1
                 const t = (angle + Math.PI) / (2 * Math.PI); 
-                color.setHSL(0.5 + t * 0.4, 1.0, 0.5); // Range from Cyan (0.5) to Purple (0.9)
+                color.setHSL(0.5 + t * 0.4, themeColors.ribbonSaturation, themeColors.ribbonLightness);
 
                 // Populate Ribbon Vertices
                 const idx = i * 6; // 2 vertices * 3 coords
@@ -567,15 +764,25 @@
                 colors[idx + 3] = color.r * intensity;
                 colors[idx + 4] = color.g * intensity;
                 colors[idx + 5] = color.b * intensity;
+
+                const spineIdx = i * 3;
+                spinePositions[spineIdx] = point.x;
+                spinePositions[spineIdx + 1] = point.y;
+                spinePositions[spineIdx + 2] = zDepth;
             }
 
             // Fill remaining buffer if history is short (startup)
             for (let i = history.length * 6; i < positions.length; i++) {
                 positions[i] = 0;
             }
+            for (let i = history.length * 3; i < spinePositions.length; i++) {
+                spinePositions[i] = 0;
+            }
 
             ribbon.geometry.attributes.position.needsUpdate = true;
             ribbon.geometry.attributes.color.needsUpdate = true;
+            spineGeo.attributes.position.needsUpdate = true;
+            spineGeo.setDrawRange(0, history.length);
             
             // Move axes grid slightly to follow time? 
             // Or keep grid static and let ribbon flow through it.
@@ -658,6 +865,7 @@
         }
 
         // Init
+        applyTheme(getPreferredTheme());
         applyResponsiveView();
         syncMobilePanel(true);
         document.getElementById('loader').style.opacity = 0;

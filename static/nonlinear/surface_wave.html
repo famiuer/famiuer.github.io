@@ -4,8 +4,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Surface Wave Shoaling Demo</title>
+    <script>
+      MathJax = {
+        tex: {
+          inlineMath: [['$', '$'], ['\\(', '\\)']],
+          displayMath: [['$$', '$$'], ['\\[', '\\]']]
+        },
+        svg: { fontCache: 'global' }
+      };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&family=STIX+Two+Text:wght@500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
+            --font-ui: 'Source Sans 3', 'Helvetica Neue', Arial, sans-serif;
+            --font-display: 'STIX Two Text', Georgia, serif;
             --bg-top: #dff3ff;
             --bg-bottom: #eef6fb;
             --ink: #102033;
@@ -30,7 +45,7 @@
         body {
             margin: 0;
             overflow: hidden;
-            font-family: "Avenir Next", "Segoe UI", sans-serif;
+            font-family: var(--font-ui);
             color: var(--ink);
             background: linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
         }
@@ -83,6 +98,7 @@
             font-size: 1.7rem;
             line-height: 1;
             letter-spacing: -0.03em;
+            font-family: var(--font-display);
         }
 
         .subtitle {
@@ -112,9 +128,7 @@
 
         .equation-line {
             margin: 6px 0;
-            font-family: "Times New Roman", Georgia, serif;
             font-size: 1.25rem;
-            font-style: italic;
             letter-spacing: -0.01em;
         }
 
@@ -140,8 +154,12 @@
         }
 
         .value {
-            font-family: "SFMono-Regular", Consolas, monospace;
+            font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
             color: var(--accent-2);
+        }
+        .equation mjx-container {
+            font-size: 1.03em !important;
+            margin: 0.15em 0;
         }
 
         input[type="range"] {
@@ -255,9 +273,9 @@
 
         <div class="equation">
             <div class="equation-label">Linear Wave Model</div>
-            <div class="equation-line">&omega;<sup>2</sup> = gk tanh(kh)</div>
-            <div class="equation-line">H(x) &asymp; H<sub>0</sub> sqrt(c<sub>g,0</sub> / c<sub>g</sub>(x))</div>
-            <div class="equation-note">Breaking option: H &le; &gamma; h with &gamma; = 0.78.</div>
+            <div class="equation-line">\[ \omega^2 = gk\tanh(kh) \]</div>
+            <div class="equation-line">\[ H(x) \asymp H_0 \sqrt{\frac{c_{g,0}}{c_g(x)}} \]</div>
+            <div class="equation-note">Breaking option: \( H \le \gamma h \) with \( \gamma = 0.78 \).</div>
         </div>
 
         <div class="control">

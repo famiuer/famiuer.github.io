@@ -19,5 +19,6 @@ If you want to play with them directly:
 - [Van der Pol oscillator (3D)](/nonlinear/vdp.html)
 - [Torus oscillator and Poincare section](/nonlinear/torus_oscillator.html)
 - [Floquet stability and parametric resonance](/nonlinear/floquet.html)
+- [Floquet phase portrait variant](/nonlinear/floquet2.html)
 
 Nothing fancy, just practical visual notes I can revisit later. I’ll keep adding more as I go.
