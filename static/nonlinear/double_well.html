@@ -210,6 +210,20 @@
             justify-content: center;
             box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12);
         }
+        #post-link {
+            position: fixed;
+            top: max(14px, env(safe-area-inset-top));
+            right: max(66px, calc(env(safe-area-inset-right) + 66px));
+            z-index: 20;
+            padding: 0.58rem 0.9rem;
+            border-radius: 999px;
+            border: 1px solid var(--theme-button-border);
+            background: var(--theme-button-bg);
+            color: var(--heading);
+            text-decoration: none;
+            font-weight: 600;
+            box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12);
+        }
 
         .button-row {
             flex-direction: row;
@@ -256,6 +270,7 @@
 <body>
 
     <button id="theme-toggle" type="button" aria-label="Toggle color scheme">☾</button>
+    <a id="post-link" href="/blog/nonlinear-system-study/">&larr; Post</a>
 
     <h1>Particle in a Double-Well Potential</h1>
     <div class="subtitle">

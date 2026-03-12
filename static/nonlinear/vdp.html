@@ -152,6 +152,22 @@
             place-items: center;
             font-size: 1rem;
         }
+        #post-link {
+            position: absolute;
+            top: max(12px, env(safe-area-inset-top));
+            right: max(64px, calc(env(safe-area-inset-right) + 64px));
+            z-index: 20;
+            padding: 10px 14px;
+            border-radius: 999px;
+            border: 1px solid var(--toggle-border);
+            background: var(--toggle-bg);
+            color: var(--text);
+            text-decoration: none;
+            font-weight: 600;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+        }
 
         h1 {
             margin: 0 0 4px 0;
@@ -308,6 +324,9 @@
                 display: block;
                 right: max(60px, calc(env(safe-area-inset-right) + 60px));
             }
+            #post-link {
+                right: max(126px, calc(env(safe-area-inset-right) + 126px));
+            }
 
             #ui-panel {
                 top: max(8px, env(safe-area-inset-top));
@@ -363,6 +382,7 @@
     <div id="loader">Initializing Physics Engine...</div>
     <button id="panel-toggle" type="button" aria-expanded="false">Controls</button>
     <button id="theme-toggle" type="button" aria-label="Toggle color scheme">☾</button>
+    <a id="post-link" href="/blog/nonlinear-system-study/">&larr; Post</a>
 
     <div id="ui-panel">
         <h1>Van der Pol Oscillator</h1>

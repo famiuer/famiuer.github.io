@@ -88,6 +88,7 @@
         #ui-header h2 { margin: 0; font-size: 1.1rem; color: var(--heading); font-family: var(--font-display); font-weight: 700; letter-spacing: -0.02em; }
         #ui-toggle { color: var(--heading); font-size: 1.2rem; user-select: none; }
         #theme-toggle { position: absolute; top: max(10px, env(safe-area-inset-top)); right: max(10px, env(safe-area-inset-right)); z-index: 11; width: 44px; height: 44px; border-radius: 999px; border: 1px solid var(--theme-toggle-border); background: var(--theme-toggle-bg); color: var(--text); font-size: 1.1rem; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 10px 24px rgba(15, 23, 42, 0.16); }
+        #post-link { position: absolute; top: max(10px, env(safe-area-inset-top)); right: max(62px, calc(env(safe-area-inset-right) + 62px)); z-index: 11; padding: 10px 14px; border-radius: 999px; border: 1px solid var(--theme-toggle-border); background: var(--theme-toggle-bg); color: var(--text); text-decoration: none; font-weight: 600; box-shadow: 0 10px 24px rgba(15, 23, 42, 0.16); }
         #ui-content { padding: 0 15px 15px 15px; overflow-y: auto; }
         .control-group { margin-bottom: 12px; }
         label { display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 4px; font-weight: 600; letter-spacing: -0.01em; }
@@ -180,6 +181,7 @@
 </head>
 <body>
     <button id="theme-toggle" type="button" aria-label="Toggle color scheme">☾</button>
+    <a id="post-link" href="/blog/nonlinear-system-study/">&larr; Post</a>
 
     <div id="ui-panel">
         <div id="ui-header">

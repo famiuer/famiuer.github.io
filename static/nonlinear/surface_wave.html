@@ -92,6 +92,20 @@
             font-weight: 700;
             box-shadow: 0 12px 24px rgba(18, 36, 56, 0.12);
         }
+        #post-link {
+            position: absolute;
+            top: max(12px, env(safe-area-inset-top));
+            right: max(12px, env(safe-area-inset-right));
+            z-index: 20;
+            border: 1px solid rgba(16, 32, 51, 0.12);
+            background: rgba(255, 255, 255, 0.88);
+            color: var(--ink);
+            border-radius: 999px;
+            padding: 10px 14px;
+            text-decoration: none;
+            font-weight: 700;
+            box-shadow: 0 12px 24px rgba(18, 36, 56, 0.12);
+        }
 
         h1 {
             margin: 0 0 6px;
@@ -222,6 +236,9 @@
             #panel-toggle {
                 display: block;
             }
+            #post-link {
+                right: max(116px, calc(env(safe-area-inset-right) + 116px));
+            }
 
             #panel {
                 top: max(8px, env(safe-area-inset-top));
@@ -263,6 +280,7 @@
 <body>
     <canvas id="scene"></canvas>
 
+    <a id="post-link" href="/blog/nonlinear-system-study/">&larr; Post</a>
     <button id="panel-toggle" type="button" aria-expanded="false">Controls</button>
 
     <div id="panel">

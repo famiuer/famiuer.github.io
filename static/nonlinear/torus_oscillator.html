@@ -175,6 +175,22 @@
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
         }
+        #post-link {
+            position: absolute;
+            top: max(10px, env(safe-area-inset-top));
+            right: max(62px, calc(env(safe-area-inset-right) + 62px));
+            z-index: 3;
+            padding: 10px 14px;
+            border-radius: 999px;
+            border: 1px solid var(--toggle-border);
+            background: var(--toggle-bg);
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 600;
+            box-shadow: 0 16px 36px var(--shadow);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
         
         /* Mobile Specifics */
         @media (max-width: 768px) {
@@ -194,6 +210,7 @@
 <body>
 
     <button id="theme-toggle" type="button" aria-label="Toggle color scheme">☾</button>
+    <a id="post-link" href="/blog/nonlinear-system-study/">&larr; Post</a>
     <div id="ui-panel">
         <div id="ui-header">
             <h2>Poincaré Section</h2>

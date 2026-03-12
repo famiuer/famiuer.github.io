@@ -105,6 +105,20 @@
             line-height: 1;
             box-shadow: 0 10px 24px rgba(2, 6, 23, 0.2);
         }
+        #post-link {
+            position: absolute;
+            top: max(12px, env(safe-area-inset-top));
+            right: max(132px, calc(env(safe-area-inset-right) + 132px));
+            z-index: 20;
+            padding: 10px 14px;
+            border-radius: 999px;
+            border: 1px solid var(--toggle-border);
+            background: var(--toggle-bg);
+            color: var(--text);
+            text-decoration: none;
+            font-weight: 600;
+            box-shadow: 0 10px 24px rgba(2, 6, 23, 0.2);
+        }
 
         h1 { margin: 0 0 5px 0; font-size: 1.2rem; color: var(--heading); font-family: var(--font-display); letter-spacing: -0.02em; }
         p { margin: 0 0 15px 0; font-size: 0.85rem; color: var(--muted); line-height: 1.45; }
@@ -216,6 +230,7 @@
 
         <button id="panel-toggle" type="button" aria-expanded="false">Controls</button>
     <button id="theme-toggle" type="button" aria-label="Toggle color scheme">☾</button>
+    <a id="post-link" href="/blog/nonlinear-system-study/">&larr; Post</a>
 
     <div id="ui-container">
         <h1>Nonlinear Pendulum</h1>
