@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>4D Coupled Nonlinear Floquet Theory</title>
+  <script>
+    MathJax = {
+      tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] },
+      svg: { fontCache: 'global' }
+    };
+  </script>
+  <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&family=STIX+Two+Text:wght@500;600;700&family=STIX+Two+Math&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --font-ui: 'Source Sans 3', 'Helvetica Neue', Arial, sans-serif;
+      --font-display: 'STIX Two Text', Georgia, serif;
+      --bg: #111111; --panel-bg: rgba(20,20,20,.92); --panel-border: #333333; --header-bg: rgba(40,40,40,.55);
+      --text: #ffffff; --heading: #4da6ff; --button-bg: #4da6ff; --button-hover: #3388ff; --muted: #aaaaaa;
+      --text-panel-bg: #151515; --text-panel-text: #dddddd; --math-bg: rgba(0,0,0,.3); --math-border: #333333;
+      --canvas-border: #222222; --canvas-title: rgba(255,255,255,.78); --canvas-subtitle: #b9c2cf; --scale-label: rgba(255,255,255,.56);
+      --mech-panel-bg: #050505; --floquet-panel-bg: #0a0a0a; --theme-toggle-bg: rgba(20,20,20,.92); --theme-toggle-border: rgba(255,255,255,.14);
+    }
+    :root[data-theme="light"] {
+      --bg: #f3f7fb; --panel-bg: rgba(255,255,255,.95); --panel-border: rgba(15,23,42,.08); --header-bg: rgba(226,232,240,.8);
+      --text: #0f172a; --heading: #0369a1; --button-bg: #0284c7; --button-hover: #0369a1; --muted: #64748b;
+      --text-panel-bg: #ffffff; --text-panel-text: #1e293b; --math-bg: rgba(226,232,240,.6); --math-border: rgba(15,23,42,.08);
+      --canvas-border: rgba(148,163,184,.26); --canvas-title: #0f172a; --canvas-subtitle: #475569; --scale-label: #334155;
+      --mech-panel-bg: #f8fbff; --floquet-panel-bg: #e7eef7; --theme-toggle-bg: rgba(255,255,255,.94); --theme-toggle-border: rgba(15,23,42,.12);
+    }
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; }
+    body { margin: 0; overflow: hidden; background: var(--bg); color: var(--text); font-family: var(--font-ui); }
+    #app-container { width: 100vw; height: 100vh; position: relative; }
+    #ui-panel { position: absolute; top: max(10px, env(safe-area-inset-top)); left: max(10px, env(safe-area-inset-left)); z-index: 10; width: min(340px, calc(100vw - 20px)); background: var(--panel-bg); border: 1px solid var(--panel-border); border-radius: 8px; display: flex; flex-direction: column; max-height: calc(100dvh - 20px); box-shadow: 0 4px 10px rgba(0,0,0,.22); }
+    #ui-header { padding: 15px; display: flex; justify-content: space-between; align-items: center; background: var(--header-bg); border-radius: 8px; cursor: pointer; }
+    #ui-header h2 { margin: 0; font-family: var(--font-display); font-size: 1.08rem; color: var(--heading); }
+    #ui-toggle { color: var(--heading); font-size: 1.2rem; user-select: none; }
+    #ui-content { padding: 0 15px 15px; overflow-y: auto; }
+    .control-group { margin-bottom: 10px; }
+    label { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; font-size: .92rem; margin-bottom: 4px; }
+    .control-label { font-weight: 600; }
+    .value-num { min-width: 3.6ch; text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+    input[type=range] { width: 100%; cursor: pointer; margin-bottom: 2px; }
+    button { width: 100%; padding: 10px; background: var(--button-bg); color: white; border: none; border-radius: 4px; font-weight: 600; cursor: pointer; margin-top: 6px; font-family: var(--font-ui); }
+    button:hover { background: var(--button-hover); }
+    #status-box { margin-top: 10px; padding: 10px; text-align: center; font-weight: 700; border-radius: 4px; font-size: 1rem; letter-spacing: .08em; }
+    .stable { background: rgba(0,255,100,.18); color: #00ff66; border: 1px solid #00ff66; }
+    .neutral { background: rgba(255,215,0,.16); color: #ffd54a; border: 1px solid #ffd54a; }
+    .unstable { background: rgba(255,50,50,.2); color: #ff5555; border: 1px solid #ff5555; }
+    #theme-toggle { position: absolute; top: max(10px, env(safe-area-inset-top)); right: max(10px, env(safe-area-inset-right)); z-index: 11; width: 44px; height: 44px; border-radius: 999px; border: 1px solid var(--theme-toggle-border); background: var(--theme-toggle-bg); color: var(--text); font-size: 1.1rem; display: inline-flex; align-items: center; justify-content: center; }
+    #post-link { position: absolute; top: max(10px, env(safe-area-inset-top)); right: max(62px, calc(env(safe-area-inset-right) + 62px)); z-index: 11; padding: 10px 14px; border-radius: 999px; border: 1px solid var(--theme-toggle-border); background: var(--theme-toggle-bg); color: var(--text); text-decoration: none; font-weight: 600; }
+    #visualization { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; width: 100vw; height: 100vh; }
+    .canvas-wrapper { position: relative; border: 1px solid var(--canvas-border); overflow: hidden; }
+    .canvas-wrapper-mech { background: var(--mech-panel-bg); }
+    .canvas-wrapper-floquet { background: var(--floquet-panel-bg); cursor: crosshair; }
+    canvas { display: block; width: 100%; height: 100%; }
+    .canvas-title { position: absolute; top: 15px; right: 20px; z-index: 5; color: var(--canvas-title); font-family: var(--font-display); font-weight: 700; font-size: 1.16rem; line-height: 1.06; text-align: right; pointer-events: none; }
+    .canvas-title-left { left: 20px; right: auto; text-align: left; }
+    .subtitle { display: block; font-size: .8rem; font-weight: 500; color: var(--canvas-subtitle); margin-top: 4px; line-height: 1.2; }
+    .axis-label { position: absolute; color: var(--canvas-subtitle); font-family: var(--font-display); font-size: .95rem; font-weight: 600; pointer-events: none; z-index: 5; }
+    .axis-label-im { top: 16px; left: calc(50% - 12px); transform: translateX(-100%); }
+    .axis-label-re { right: 18px; top: calc(50% - 30px); }
+    .scale-indicator { position: absolute; bottom: 38px; left: 20px; color: var(--scale-label); font-size: 1rem; font-weight: 600; z-index: 5; pointer-events: none; }
+    .scale-legend { position: absolute; bottom: 15px; left: 20px; display: flex; gap: 14px; font-size: .9rem; font-weight: 600; z-index: 5; pointer-events: none; }
+    .scale-legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .legend-chip { width: 9px; height: 9px; display: inline-block; }
+    .text-panel { background: var(--text-panel-bg); padding: 25px 30px; overflow-y: auto; color: var(--text-panel-text); font-size: .95rem; line-height: 1.6; }
+    .text-panel h3 { color: var(--text); border-bottom: 1px solid var(--panel-border); padding-bottom: 8px; margin-top: 0; }
+    .text-panel ul { padding-left: 20px; margin-top: 5px; }
+    .math-block { background: var(--math-bg); border: 1px solid var(--math-border); border-radius: 6px; padding: 10px; text-align: center; margin: 15px 0; font-size: .9em; overflow-x: auto; }
+    @media (max-width: 900px) {
+      body { overflow: auto; }
+      #visualization { grid-template-columns: 1fr; grid-template-rows: minmax(300px,1fr) minmax(300px,1fr) minmax(300px,1fr) minmax(400px,auto); height: auto; min-height: 100vh; }
+      #ui-panel { left: max(8px, env(safe-area-inset-left)); right: max(8px, env(safe-area-inset-right)); width: auto; }
+      #ui-content { max-height: 40vh; }
+    }
+  </style>
+</head>
+<body>
+  <button id="theme-toggle" type="button" aria-label="Toggle color scheme">☾</button>
+  <a id="post-link" href="/blog/nonlinear-system-study/">&larr; Post</a>
+  <div id="app-container">
+    <div id="ui-panel">
+      <div id="ui-header"><h2>4D Coupled Nonlinear Floquet</h2><span id="ui-toggle">▼</span></div>
+      <div id="ui-content">
+        <div class="control-group"><label><span class="control-label">\( \delta_1 \) (Stiffness 1):</span><span id="d1-val" class="value-num">1.00</span></label><input type="range" id="d1" min="-1" max="5" step="0.01" value="1.00"></div>
+        <div class="control-group"><label><span class="control-label">\( \delta_2 \) (Stiffness 2):</span><span id="d2-val" class="value-num">2.50</span></label><input type="range" id="d2" min="-1" max="5" step="0.01" value="2.50"></div>
+        <div class="control-group"><label><span class="control-label">\( c_1 \) (Damping 1):</span><span id="c1-val" class="value-num">0.00</span></label><input type="range" id="c1" min="0" max="1" step="0.01" value="0.00"></div>
+        <div class="control-group"><label><span class="control-label">\( c_2 \) (Damping 2):</span><span id="c2-val" class="value-num">0.50</span></label><input type="range" id="c2" min="0" max="1" step="0.01" value="0.50"></div>
+        <div class="control-group" style="padding-top:5px;border-top:1px solid var(--panel-border);"><label><span class="control-label" style="color:var(--heading);">\( k \) (Coupling):</span><span id="k-val" class="value-num">1.00</span></label><input type="range" id="k" min="0" max="3" step="0.01" value="1.00"></div>
+        <div class="control-group"><label><span class="control-label" style="color:var(--heading);">\( \epsilon \) (Forcing):</span><span id="ep-val" class="value-num">0.00</span></label><input type="range" id="ep" min="0" max="5" step="0.01" value="0.00"></div>
+        <div class="control-group"><label><span class="control-label" style="color:var(--heading);">\( g \) (Gyroscopic coupling):</span><span id="g-val" class="value-num">0.00</span></label><input type="range" id="g" min="0" max="1.5" step="0.01" value="0.00"></div>
+        <div class="control-group" style="padding-top:5px;border-top:1px solid var(--panel-border);"><label><span class="control-label" style="color:var(--heading);">\( \alpha \) (Cubic stiffness):</span><span id="alpha-val" class="value-num">0.05</span></label><input type="range" id="alpha" min="0" max="0.5" step="0.01" value="0.05"></div>
+        <div class="control-group"><label><span class="control-label" style="color:var(--heading);">\( \eta \) (Nonlinear damping):</span><span id="eta-val" class="value-num">0.10</span></label><input type="range" id="eta" min="0" max="1.0" step="0.01" value="0.10"></div>
+        <button id="example-btn">Load Torus-like Example</button>
+        <button id="complex-btn">Load Complex-Pair Crossing</button>
+        <button id="perturb-btn">Perturb System</button>
+        <div id="status-box" class="stable">LINEARLY STABLE</div>
+      </div>
+    </div>
+
+    <div id="visualization">
+      <div class="canvas-wrapper canvas-wrapper-mech">
+        <div class="canvas-title">Coupled Mechanics</div>
+        <canvas id="canvas-mech"></canvas>
+      </div>
+      <div class="canvas-wrapper">
+        <div class="canvas-title canvas-title-left">Time Series: \(x_{1,2}(t)\)<span class="subtitle">Weak nonlinearity can saturate growth into bounded amplitude modulation.</span></div>
+        <div id="scale-text" class="scale-indicator">Scale: \(\pm 1.00\)</div>
+        <div id="scale-legend" class="scale-legend"><span id="legend-1"><i class="legend-chip"></i>Pendulum 1</span><span id="legend-2"><i class="legend-chip"></i>Pendulum 2</span></div>
+        <canvas id="canvas-sim"></canvas>
+      </div>
+      <div class="canvas-wrapper canvas-wrapper-floquet">
+        <div class="canvas-title">Complex \( \lambda \)-Plane (Linearised about the origin)<span class="subtitle">4 multipliers. Local stability only; nonlinear saturation is shown in the time simulation.</span></div>
+        <div class="axis-label axis-label-im">\( \mathrm{Im}\,\lambda \)</div>
+        <div class="axis-label axis-label-re">\( \mathrm{Re}\,\lambda \)</div>
+        <canvas id="canvas-floquet"></canvas>
+      </div>
+      <div class="canvas-wrapper text-panel">
+        <h3>4D Coupled Nonlinear System Dynamics</h3>
+        <p>This page combines two different levels of description. The Floquet panel is computed from the <strong>linearisation about the origin</strong>, so it is a local statement about the zero solution. The time-series panel integrates the <strong>full nonlinear system</strong>, including weak cubic stiffness and amplitude-dependent damping, so it shows what a finite-amplitude perturbation does after the local instability has been triggered.</p>
+        <div class="math-block">
+          $$\ddot{x}_1 + (c_1 + \eta x_1^2)\dot{x}_1 + (\delta_1 + \epsilon \cos(2t))x_1 + \alpha x_1^3 + k(x_1 - x_2) + g\dot{x}_2 = 0$$
+          $$\ddot{x}_2 + (c_2 + \eta x_2^2)\dot{x}_2 + (\delta_2 + \epsilon \cos(2t))x_2 + \alpha x_2^3 + k(x_2 - x_1) - g\dot{x}_1 = 0$$
+        </div>
+        <p><strong>How to read the figure:</strong> the gyroscopic coupling \(g\) enters the velocity block as a skew-symmetric term. In the linearised periodic problem, that changes the monodromy matrix and can make the dominant Floquet multipliers leave the unit circle as a <strong>complex-conjugate pair</strong> rather than along the real axis. When that happens, the origin is linearly unstable through oscillatory growth. The nonlinear terms \(\alpha x^3\) and \(\eta x^2\dot{x}\) do not enter the Floquet calculation here; they only affect the separate time integration by limiting or reshaping the finite-amplitude response.</p>
+        <ul>
+          <li><strong>Bounded nonlinear example:</strong> click <em>Load Torus-like Example</em>. This preset is intended to show a bounded, slowly modulated time trace after nonlinear saturation. It should be read as a qualitative nonlinear response example, not as a proof of a specific invariant torus from the diagnostics shown on this page alone.</li>
+          <li><strong>Complex-pair crossing example:</strong> click <em>Load Complex-Pair Crossing</em>, or set \(\delta_1=1.22\), \(\delta_2=0.37\), \(c_1=0.38\), \(c_2=0.11\), \(k=0.54\), \(g=0.65\), and increase \(\epsilon\) through about \(1.13\). Near that threshold the leading Floquet multipliers are a complex-conjugate pair that crosses the unit circle directly.</li>
+          <li><strong>Important caveat:</strong> the Floquet plane does <em>not</em> show the nonlinear attractor. It only shows the spectrum of the linearised return map at the origin. Any bounded oscillation, amplitude modulation, or quasiperiodic-looking response in the simulation belongs to the nonlinear system and must be interpreted separately from the local multiplier plot.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const themeToggle = document.getElementById('theme-toggle');
+    const THEME_KEY = 'nonlinear-demo-theme';
+    const themePalettes = {
+      dark: { mechBg:'#050505', floquetBg:'#0a0a0a', axis:'#444', axisLabel:'#666', unitCircle:'rgba(255,255,255,.4)', guide:'#333', mechPivot:'#4da6ff', stable:'#00bfff', neutral:'#ffd54a', unstable:'#ff5555', spring:'#888', bob1:'#4da6ff', bob2:'#ff4d4d', line1:'rgba(77,166,255,.9)', line2:'rgba(255,77,77,.8)', eigStroke:'#fff', stableRay:'rgba(0,191,255,.35)', neutralRay:'rgba(202,138,4,.35)', unstableRay:'rgba(220,38,38,.35)', flash:'rgba(0, 191, 255, %a%)' },
+      light: { mechBg:'#f8fbff', floquetBg:'#e7eef7', axis:'#94a3b8', axisLabel:'#334155', unitCircle:'rgba(15,23,42,.34)', guide:'#94a3b8', mechPivot:'#0369a1', stable:'#0369a1', neutral:'#b45309', unstable:'#c1121f', spring:'#94a3b8', bob1:'#0284c7', bob2:'#dc2626', line1:'rgba(2,132,199,.9)', line2:'rgba(220,38,38,.8)', eigStroke:'#f8fafc', stableRay:'rgba(3,105,161,.42)', neutralRay:'rgba(180,83,9,.42)', unstableRay:'rgba(193,18,31,.38)', flash:'rgba(3, 105, 161, %a%)' }
+    };
+    let themeColors = themePalettes.dark;
+    function applyTheme(theme) {
+      document.documentElement.dataset.theme = theme;
+      themeColors = themePalettes[theme];
+      themeToggle.textContent = theme === 'dark' ? '☀' : '☾';
+      renderScaleLegend();
+    }
+    themeToggle.addEventListener('click', () => {
+      const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+      localStorage.setItem(THEME_KEY, next);
+      applyTheme(next);
+    });
+    const uiHeader = document.getElementById('ui-header');
+    const uiContent = document.getElementById('ui-content');
+    const uiToggle = document.getElementById('ui-toggle');
+    let isCollapsed = window.innerWidth <= 900;
+    function syncUI(force) {
+      if (typeof force === 'boolean') isCollapsed = force;
+      uiContent.style.display = isCollapsed ? 'none' : 'block';
+      uiToggle.textContent = isCollapsed ? '▼' : '▲';
+    }
+    uiHeader.addEventListener('click', () => syncUI(!isCollapsed));
+    syncUI(isCollapsed);
+    window.addEventListener('resize', () => syncUI(window.innerWidth <= 900));
+
+    const sys = { d1:1.0, d2:2.5, c1:0.0, c2:0.5, ep:0.0, k:1.0, g:0.0, alpha:0.05, eta:0.10 };
+    const T = Math.PI;
+    let t = 0;
+    let state = [0.5, 0.1, 0, 0];
+    let hist1 = [], hist2 = [];
+    const MAX_HIST = 3000;
+    let lambdas = [];
+    let stabilityState = 'stable';
+    let clickFlashAlpha = 0;
+    let clickFlashPos = {x:0, y:0};
+
+    const canvasMech = document.getElementById('canvas-mech'), ctxMech = canvasMech.getContext('2d');
+    const canvasSim = document.getElementById('canvas-sim'), ctxSim = canvasSim.getContext('2d');
+    const canvasFlq = document.getElementById('canvas-floquet'), ctxFlq = canvasFlq.getContext('2d');
+    const scaleText = document.getElementById('scale-text');
+    const legendOne = document.getElementById('legend-1');
+    const legendTwo = document.getElementById('legend-2');
+    applyTheme(localStorage.getItem(THEME_KEY) || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+
+    function typesetMath(targets) { if (window.MathJax?.typesetPromise) window.MathJax.typesetPromise(targets).catch(() => {}); }
+    function renderScaleLegend() {
+      legendOne.style.color = themeColors.bob1; legendTwo.style.color = themeColors.bob2;
+      legendOne.querySelector('.legend-chip').style.background = themeColors.bob1;
+      legendTwo.querySelector('.legend-chip').style.background = themeColors.bob2;
+    }
+    const TORUS_PRESET = { d1:0.20, d2:0.20, c1:0.00, c2:0.00, ep:0.05, k:0.10, g:0.00, alpha:0.05, eta:0.10 };
+    const COMPLEX_PRESET = { d1:1.22, d2:0.37, c1:0.38, c2:0.11, ep:1.20, k:0.54, g:0.65, alpha:0.05, eta:0.10 };
+    function resizeCanvases() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      [canvasMech, canvasSim, canvasFlq].forEach(c => {
+        c.width = Math.round(c.parentElement.clientWidth * dpr);
+        c.height = Math.round(c.parentElement.clientHeight * dpr);
+        c.getContext('2d').setTransform(dpr, 0, 0, dpr, 0, 0);
+      });
+      drawFloquetPlane();
+    }
+    window.addEventListener('resize', resizeCanvases);
+
+    const C = {
+      add:(a,b)=>({r:a.r+b.r,i:a.i+b.i}), sub:(a,b)=>({r:a.r-b.r,i:a.i-b.i}),
+      mul:(a,b)=>({r:a.r*b.r-a.i*b.i,i:a.r*b.i+a.i*b.r}),
+      div:(a,b)=>{const den=b.r*b.r+b.i*b.i; return {r:(a.r*b.r+a.i*b.i)/den, i:(a.i*b.r-a.r*b.i)/den};}
+    };
+    function solveQuartic(A,B,Cc,D) {
+      const evalP = (x) => {
+        let x2=C.mul(x,x), x3=C.mul(x2,x), x4=C.mul(x3,x);
+        return C.add(C.add(C.add(C.add(x4, C.mul({r:A,i:0},x3)), C.mul({r:B,i:0},x2)), C.mul({r:Cc,i:0},x)), {r:D,i:0});
+      };
+      let R = [{r:1.1,i:0.9},{r:-0.9,i:1.1},{r:-1.1,i:-0.9},{r:0.9,i:-1.1}];
+      for (let iter=0; iter<60; iter++) {
+        R = R.map((ri,i) => {
+          let den = {r:1,i:0};
+          for (let j=0; j<4; j++) if (i!==j) den = C.mul(den, C.sub(ri, R[j]));
+          return C.sub(ri, C.div(evalP(ri), den));
+        });
+      }
+      return R.map(rt => ({re:rt.r, im:rt.i, mag:Math.hypot(rt.r, rt.i)}));
+    }
+    function matMul(A,B) {
+      let res = new Array(16).fill(0);
+      for (let i=0;i<4;i++) for (let j=0;j<4;j++) for (let k=0;k<4;k++) res[i*4+j] += A[i*4+k]*B[k*4+j];
+      return res;
+    }
+    function getSysMatrix(tv) {
+      const f = sys.ep * Math.cos(2*tv);
+      return [0,0,1,0, 0,0,0,1, -(sys.d1+f+sys.k), sys.k, -sys.c1, -sys.g, sys.k, -(sys.d2+f+sys.k), sys.g, -sys.c2];
+    }
+    function calculateFloquetMultipliers() {
+      let Phi = [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1];
+      const steps = 180, h = T/steps;
+      let curr = 0;
+      for (let i=0;i<steps;i++) {
+        const A1 = getSysMatrix(curr), k1 = matMul(A1,Phi);
+        const p2 = Phi.map((p,idx)=>p+0.5*h*k1[idx]);
+        const A2 = getSysMatrix(curr+0.5*h), k2 = matMul(A2,p2);
+        const p3 = Phi.map((p,idx)=>p+0.5*h*k2[idx]);
+        const k3 = matMul(A2,p3);
+        const p4 = Phi.map((p,idx)=>p+h*k3[idx]);
+        const A4 = getSysMatrix(curr+h), k4 = matMul(A4,p4);
+        Phi = Phi.map((p,idx)=>p+(h/6)*(k1[idx]+2*k2[idx]+2*k3[idx]+k4[idx]));
+        curr += h;
+      }
+      const tr = M => M[0]+M[5]+M[10]+M[15];
+      const M2 = matMul(Phi,Phi), M3 = matMul(M2,Phi), M4 = matMul(M3,Phi);
+      const T1=tr(Phi), T2=tr(M2), T3=tr(M3), T4=tr(M4);
+      const c3=-T1, c2=0.5*(T1*T1-T2), c1=-(1/6)*(T1*T1*T1-3*T1*T2+2*T3), c0=(1/24)*(T1*T1*T1*T1-6*T1*T1*T2+8*T1*T3+3*T2*T2-6*T4);
+      lambdas = solveQuartic(c3,c2,c1,c0).sort((a,b)=>b.mag-a.mag);
+      const maxMag = Math.max(...lambdas.map(l => l.mag));
+      stabilityState = maxMag < 0.9999 ? 'stable' : (maxMag > 1.0001 ? 'unstable' : 'neutral');
+      const leadPairComplex = lambdas.length >= 2
+        && Math.abs(lambdas[0].im) > 1e-3
+        && Math.abs(lambdas[1].im) > 1e-3
+        && Math.abs(lambdas[0].re - lambdas[1].re) < 1e-2
+        && Math.abs(lambdas[0].im + lambdas[1].im) < 1e-2;
+      const sb = document.getElementById('status-box');
+      sb.textContent = leadPairComplex && stabilityState === 'unstable'
+        ? 'COMPLEX-PAIR UNSTABLE'
+        : `LINEARLY ${stabilityState.toUpperCase()}`;
+      sb.className = stabilityState;
+    }
+
+    function rk4Step(dt) {
+      const rhs = (st, tv) => {
+        const f = sys.ep * Math.cos(2*tv);
+        return [
+          st[2],
+          st[3],
+          -(sys.c1 + sys.eta*st[0]*st[0])*st[2] - sys.g*st[3] - (sys.d1 + f + sys.k)*st[0] + sys.k*st[1] - sys.alpha*st[0]*st[0]*st[0],
+          -(sys.c2 + sys.eta*st[1]*st[1])*st[3] + sys.g*st[2] - (sys.d2 + f + sys.k)*st[1] + sys.k*st[0] - sys.alpha*st[1]*st[1]*st[1]
+        ];
+      };
+      const k1 = rhs(state,t);
+      const k2 = rhs(state.map((s,i)=>s+0.5*dt*k1[i]), t+0.5*dt);
+      const k3 = rhs(state.map((s,i)=>s+0.5*dt*k2[i]), t+0.5*dt);
+      const k4 = rhs(state.map((s,i)=>s+dt*k3[i]), t+dt);
+      state = state.map((s,i)=>s + (dt/6)*(k1[i]+2*k2[i]+2*k3[i]+k4[i]));
+      t += dt;
+      for (let i=0;i<4;i++) if (Math.abs(state[i]) > 1e6) state[i] = Math.sign(state[i])*1e6;
+    }
+
+    function drawMech() {
+      const w = canvasMech.clientWidth, h = canvasMech.clientHeight;
+      const desktopOffset = window.innerWidth > 900 ? Math.min(110, w*0.17) : 0;
+      const cx = w/2 + desktopOffset, cy = h/2;
+      ctxMech.clearRect(0,0,w,h); ctxMech.fillStyle = themeColors.mechBg; ctxMech.fillRect(0,0,w,h);
+      ctxMech.strokeStyle = themeColors.guide; ctxMech.lineWidth = 2;
+      const pivotY = cy - 60 - 20*sys.ep*Math.cos(2*t);
+      ctxMech.beginPath(); ctxMech.moveTo(cx-100,pivotY); ctxMech.lineTo(cx+100,pivotY); ctxMech.stroke();
+      const L = Math.min(w,h)*0.4;
+      const px1 = cx - 50, px2 = cx + 50;
+      const eqDir1 = sys.d1 >= 0 ? 1 : -1, eqDir2 = sys.d2 >= 0 ? 1 : -1;
+      const bx1 = px1 + L*Math.sin(state[0]), by1 = pivotY + eqDir1*L*Math.cos(state[0]);
+      const bx2 = px2 + L*Math.sin(state[1]), by2 = pivotY + eqDir2*L*Math.cos(state[1]);
+      ctxMech.strokeStyle = themeColors.axisLabel; ctxMech.lineWidth = 3;
+      ctxMech.beginPath(); ctxMech.moveTo(px1,pivotY); ctxMech.lineTo(bx1,by1); ctxMech.stroke();
+      ctxMech.beginPath(); ctxMech.moveTo(px2,pivotY); ctxMech.lineTo(bx2,by2); ctxMech.stroke();
+      const dist = Math.hypot(bx2-bx1, by2-by1) || 1;
+      const perpX = -(by2-by1)/dist, perpY = (bx2-bx1)/dist;
+      ctxMech.strokeStyle = themeColors.spring; ctxMech.lineWidth = 2;
+      ctxMech.beginPath(); ctxMech.moveTo(bx1,by1);
+      for (let i=1;i<=10;i++) {
+        const frac = i/11, sx = bx1 + (bx2-bx1)*frac, sy = by1 + (by2-by1)*frac;
+        const offset = (i%2===0 ? 1 : -1) * (sys.k>0 ? 10 : 0);
+        ctxMech.lineTo(sx + perpX*offset, sy + perpY*offset);
+      }
+      ctxMech.lineTo(bx2,by2); ctxMech.stroke();
+      ctxMech.fillStyle = themeColors.mechPivot;
+      ctxMech.beginPath(); ctxMech.arc(px1,pivotY,5,0,2*Math.PI); ctxMech.fill();
+      ctxMech.beginPath(); ctxMech.arc(px2,pivotY,5,0,2*Math.PI); ctxMech.fill();
+      ctxMech.fillStyle = themeColors.bob1; ctxMech.beginPath(); ctxMech.arc(bx1,by1,12,0,2*Math.PI); ctxMech.fill();
+      ctxMech.fillStyle = themeColors.bob2; ctxMech.beginPath(); ctxMech.arc(bx2,by2,12,0,2*Math.PI); ctxMech.fill();
+    }
+    function drawSimulationX() {
+      const w = canvasSim.clientWidth, h = canvasSim.clientHeight, cy = h/2;
+      ctxSim.clearRect(0,0,w,h); ctxSim.fillStyle = themeColors.mechBg; ctxSim.fillRect(0,0,w,h);
+      ctxSim.strokeStyle = themeColors.guide; ctxSim.lineWidth = 1; ctxSim.beginPath(); ctxSim.moveTo(0,cy); ctxSim.lineTo(w,cy); ctxSim.stroke();
+      if (!hist1.length) return;
+      let maxVal = 1.0;
+      for (let i=0;i<hist1.length;i++) maxVal = Math.max(maxVal, Math.abs(hist1[i]), Math.abs(hist2[i]));
+      const sc = maxVal > 100 ? maxVal.toExponential(2) : maxVal.toFixed(2);
+      scaleText.textContent = `Scale: ±${sc}`;
+      const yScale = (h*0.4)/maxVal, xD = Math.max(hist1.length-1,1);
+      const drawLine = (hist,color) => {
+        ctxSim.beginPath();
+        for (let i=0;i<hist.length;i++) {
+          const px = (i/xD)*w, py = cy - hist[i]*yScale;
+          if (i===0) ctxSim.moveTo(px,py); else ctxSim.lineTo(px,py);
+        }
+        ctxSim.strokeStyle = color; ctxSim.lineWidth = 2; ctxSim.stroke();
+      };
+      drawLine(hist1, themeColors.line1); drawLine(hist2, themeColors.line2);
+    }
+    function drawFloquetPlane() {
+      const w = canvasFlq.clientWidth, h = canvasFlq.clientHeight, cx = w/2, cy = h/2, r = Math.min(w,h)*0.35;
+      ctxFlq.clearRect(0,0,w,h); ctxFlq.fillStyle = themeColors.floquetBg; ctxFlq.fillRect(0,0,w,h);
+      ctxFlq.strokeStyle = themeColors.axis; ctxFlq.lineWidth = 1;
+      ctxFlq.beginPath(); ctxFlq.moveTo(0,cy); ctxFlq.lineTo(w,cy); ctxFlq.moveTo(cx,0); ctxFlq.lineTo(cx,h); ctxFlq.stroke();
+      ctxFlq.beginPath(); ctxFlq.arc(cx,cy,r,0,2*Math.PI); ctxFlq.strokeStyle = themeColors.unitCircle; ctxFlq.lineWidth = 2; ctxFlq.stroke();
+      const highlightLeadPair = lambdas.length >= 2
+        && Math.abs(lambdas[0].im) > 1e-3
+        && Math.abs(lambdas[1].im) > 1e-3
+        && Math.abs(lambdas[0].re - lambdas[1].re) < 1e-2
+        && Math.abs(lambdas[0].im + lambdas[1].im) < 1e-2;
+      lambdas.forEach((lambda, idx) => {
+        const px = cx + lambda.re*r, py = cy - lambda.im*r;
+        const color = lambda.mag < 0.9999 ? themeColors.stable : (lambda.mag > 1.0001 ? themeColors.unstable : themeColors.neutral);
+        const isLead = highlightLeadPair && idx < 2;
+        ctxFlq.beginPath(); ctxFlq.arc(px,py,isLead ? 8 : 6,0,2*Math.PI); ctxFlq.fillStyle = color; ctxFlq.fill(); ctxFlq.strokeStyle = themeColors.eigStroke; ctxFlq.lineWidth = isLead ? 2 : 1; ctxFlq.stroke();
+        ctxFlq.beginPath(); ctxFlq.moveTo(cx,cy); ctxFlq.lineTo(px,py); ctxFlq.strokeStyle = lambda.mag < 0.9999 ? themeColors.stableRay : (lambda.mag > 1.0001 ? themeColors.unstableRay : themeColors.neutralRay); ctxFlq.stroke();
+      });
+      if (clickFlashAlpha > 0) {
+        ctxFlq.beginPath(); ctxFlq.arc(clickFlashPos.x, clickFlashPos.y, 10 + (1-clickFlashAlpha)*20, 0, 2*Math.PI);
+        ctxFlq.strokeStyle = themeColors.flash.replace('%a%', clickFlashAlpha); ctxFlq.lineWidth = 3; ctxFlq.stroke();
+        clickFlashAlpha = Math.max(0, clickFlashAlpha - 0.05);
+      }
+    }
+
+    function updateControls() {
+      ['d1','d2','c1','c2','ep','k','g','alpha','eta'].forEach(id => {
+        document.getElementById(id).value = sys[id];
+        document.getElementById(`${id}-val`).textContent = Number(sys[id]).toFixed(2);
+      });
+      calculateFloquetMultipliers();
+      drawFloquetPlane();
+    }
+
+    canvasFlq.addEventListener('pointerdown', (e) => {
+      const rect = canvasFlq.getBoundingClientRect();
+      clickFlashPos = { x:e.clientX - rect.left, y:e.clientY - rect.top };
+      const r = Math.min(canvasFlq.width, canvasFlq.height)*0.35/(window.devicePixelRatio || 1);
+      state = [(clickFlashPos.x - canvasFlq.clientWidth/2)/r, 0.1, -(clickFlashPos.y - canvasFlq.clientHeight/2)/r*2.0, 0];
+      clickFlashAlpha = 1.0; hist1 = []; hist2 = []; t = 0;
+    });
+    document.getElementById('example-btn').addEventListener('click', () => {
+      Object.assign(sys, TORUS_PRESET);
+      state = [0.08,0.02,0,0]; hist1 = []; hist2 = []; t = 0; updateControls();
+    });
+    document.getElementById('complex-btn').addEventListener('click', () => {
+      Object.assign(sys, COMPLEX_PRESET);
+      state = [0.08,0.01,0,0]; hist1 = []; hist2 = []; t = 0; updateControls();
+    });
+    document.getElementById('perturb-btn').addEventListener('click', () => {
+      state = [0.5,0.1,0,0]; hist1 = []; hist2 = []; t = 0; clickFlashAlpha = 1.0; clickFlashPos = { x: canvasFlq.clientWidth/2 + 0.5*(Math.min(canvasFlq.clientWidth, canvasFlq.clientHeight)*0.35), y: canvasFlq.clientHeight/2 };
+    });
+    ['d1','d2','c1','c2','ep','k','g','alpha','eta'].forEach(id => {
+      document.getElementById(id).addEventListener('input', e => {
+        sys[id] = parseFloat(e.target.value);
+        document.getElementById(`${id}-val`).textContent = sys[id].toFixed(2);
+        calculateFloquetMultipliers(); drawFloquetPlane();
+      });
+    });
+
+    function animate() {
+      for (let i=0;i<3;i++) {
+        rk4Step(0.06); hist1.push(state[0]); hist2.push(state[1]);
+        if (hist1.length > MAX_HIST) { hist1.shift(); hist2.shift(); }
+      }
+      drawMech(); drawSimulationX(); drawFloquetPlane();
+      requestAnimationFrame(animate);
+    }
+    resizeCanvases(); renderScaleLegend(); updateControls(); typesetMath([document.getElementById('ui-panel'), document.getElementById('visualization')]); animate();
+  </script>
+</body>
+</html>

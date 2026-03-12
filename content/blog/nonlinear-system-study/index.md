@@ -20,6 +20,6 @@ If you want to play with them directly:
 - [Torus oscillator and Poincare section](/nonlinear/torus_oscillator.html)
 - [Floquet stability and parametric resonance](/nonlinear/floquet.html)
 - [Floquet phase portrait variant](/nonlinear/floquet2.html)
-- Coupled Floquet: [v0](/nonlinear/coupled_floquet.html), [v1](/nonlinear/coupled_floquet2.html), [v2](/nonlinear/coupled_floquet3.html)
+- Coupled Floquet: [v0](/nonlinear/coupled_floquet.html), [v1](/nonlinear/coupled_floquet2.html), [v2](/nonlinear/coupled_floquet3.html), [quasi](/nonlinear/coupled_floquet_quasi.html)
 
 Nothing fancy, just practical visual notes I can revisit later. I’ll keep adding more as I go.
