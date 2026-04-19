@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Cylinder Wake and Hopf Bifurcation</title>
+
+  <script>
+    MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']]
+      },
+      svg: { fontCache: 'global' }
+    };
+  </script>
+  <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&family=STIX+Two+Text:wght@500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --font-ui: 'Source Sans 3', 'Helvetica Neue', Arial, sans-serif;
+      --font-display: 'STIX Two Text', Georgia, serif;
+
+      --bg: #07111f;
+      --panel-bg: rgba(9, 18, 33, 0.9);
+      --panel-border: rgba(148, 163, 184, 0.2);
+      --header-bg: rgba(15, 23, 42, 0.72);
+      --text: #e5eef9;
+      --muted: #94a3b8;
+      --heading: #38bdf8;
+      --button-bg: #0284c7;
+      --button-hover: #0369a1;
+      --theme-toggle-bg: rgba(15, 23, 42, 0.88);
+      --theme-toggle-border: rgba(148, 163, 184, 0.28);
+      --canvas-bg: #030b16;
+      --canvas-border: rgba(30, 41, 59, 0.7);
+      --canvas-title: rgba(248, 250, 252, 0.92);
+      --canvas-subtitle: #94a3b8;
+      --text-panel-bg: rgba(9, 18, 33, 0.95);
+      --math-bg: rgba(15, 23, 42, 0.8);
+      --steady-col: #16a34a;
+      --wake-col: #ef4444;
+    }
+
+    :root[data-theme="light"] {
+      --bg: #e9f0f7;
+      --panel-bg: rgba(255, 255, 255, 0.95);
+      --panel-border: rgba(15, 23, 42, 0.1);
+      --header-bg: rgba(226, 232, 240, 0.86);
+      --text: #102033;
+      --muted: #64748b;
+      --heading: #0284c7;
+      --button-bg: #0284c7;
+      --button-hover: #0369a1;
+      --theme-toggle-bg: rgba(255, 255, 255, 0.95);
+      --theme-toggle-border: rgba(15, 23, 42, 0.12);
+      --canvas-bg: #f8fbff;
+      --canvas-border: rgba(148, 163, 184, 0.28);
+      --canvas-title: #102033;
+      --canvas-subtitle: #52637a;
+      --text-panel-bg: rgba(255, 255, 255, 0.98);
+      --math-bg: rgba(226, 232, 240, 0.62);
+      --steady-col: #15803d;
+      --wake-col: #dc2626;
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-ui);
+    }
+
+    #visualization {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1.14fr 1fr;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    .canvas-wrapper {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--canvas-border);
+      background: var(--canvas-bg);
+    }
+
+    .canvas-wrapper.wide { grid-column: 1 / 3; }
+    canvas { width: 100%; height: 100%; display: block; }
+
+    .canvas-title {
+      position: absolute;
+      top: 18px;
+      right: 22px;
+      z-index: 5;
+      font-family: var(--font-display);
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--canvas-title);
+      text-align: right;
+      pointer-events: none;
+    }
+
+    .canvas-title-left {
+      left: 22px;
+      right: auto;
+      text-align: left;
+    }
+
+    .subtitle {
+      display: block;
+      margin-top: 5px;
+      font-family: var(--font-ui);
+      font-size: 0.86rem;
+      font-weight: 500;
+      color: var(--canvas-subtitle);
+    }
+
+    .axis-label {
+      position: absolute;
+      z-index: 5;
+      font-family: var(--font-display);
+      font-size: 0.98rem;
+      font-weight: 600;
+      color: var(--canvas-subtitle);
+      pointer-events: none;
+    }
+
+    .axis-label-im { top: 16px; left: calc(50% - 22px); }
+    .axis-label-re { right: 20px; top: calc(50% - 24px); }
+
+    #ui-panel {
+      position: absolute;
+      top: max(16px, env(safe-area-inset-top));
+      left: max(16px, env(safe-area-inset-left));
+      z-index: 10;
+      width: min(360px, calc(100vw - env(safe-area-inset-left) - env(safe-area-inset-right) - 32px));
+      max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 32px);
+      display: flex;
+      flex-direction: column;
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 16px;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      box-shadow: 0 24px 48px rgba(2, 6, 23, 0.18);
+    }
+
+    #ui-header {
+      padding: 18px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--header-bg);
+      border-bottom: 1px solid var(--panel-border);
+      border-radius: 16px 16px 0 0;
+      cursor: pointer;
+    }
+
+    #ui-header h2 {
+      margin: 0;
+      font-family: var(--font-display);
+      font-size: 1.18rem;
+      color: var(--heading);
+      letter-spacing: -0.02em;
+    }
+
+    #ui-toggle {
+      color: var(--heading);
+      font-size: 1.25rem;
+      user-select: none;
+    }
+
+    #ui-content {
+      padding: 18px 20px 20px;
+      overflow-y: auto;
+    }
+
+    .control-group { margin-bottom: 16px; }
+    label {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: baseline;
+      margin-bottom: 6px;
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    .value-num {
+      min-width: 4ch;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      color: var(--heading);
+      font-weight: 700;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      cursor: pointer;
+      accent-color: var(--heading);
+    }
+
+    .control-note {
+      font-size: 0.87rem;
+      line-height: 1.45;
+      color: var(--muted);
+    }
+
+    .metric-card {
+      margin: 10px 0 14px;
+      padding: 13px 14px;
+      border-radius: 11px;
+      border: 1px solid var(--panel-border);
+      background: color-mix(in srgb, var(--panel-bg) 78%, transparent);
+      font-size: 0.92rem;
+      line-height: 1.5;
+    }
+
+    .metric-card strong { color: var(--heading); }
+
+    button {
+      width: 100%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+      border: none;
+      border-radius: 11px;
+      font-family: var(--font-ui);
+      font-size: 0.98rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.18s ease, background 0.18s ease;
+      margin-top: 8px;
+      background: linear-gradient(135deg, var(--button-bg), color-mix(in srgb, var(--button-bg) 68%, white));
+      color: white;
+    }
+
+    button:hover { transform: translateY(-1px); }
+
+    #status-box {
+      margin-top: 14px;
+      padding: 12px;
+      border-radius: 11px;
+      text-align: center;
+      font-size: 0.96rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+
+    .state-steady {
+      color: var(--steady-col);
+      background: color-mix(in srgb, var(--steady-col) 15%, transparent);
+      border: 1px solid color-mix(in srgb, var(--steady-col) 70%, white);
+    }
+
+    .state-wake {
+      color: var(--wake-col);
+      background: color-mix(in srgb, var(--wake-col) 14%, transparent);
+      border: 1px solid color-mix(in srgb, var(--wake-col) 72%, white);
+    }
+
+    .text-panel {
+      padding: 28px 32px;
+      overflow-y: auto;
+      background: var(--text-panel-bg);
+      color: var(--text);
+      font-size: 0.98rem;
+      line-height: 1.68;
+    }
+
+    .text-panel h3 {
+      margin-top: 0;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--panel-border);
+      font-family: var(--font-display);
+      font-size: 1.22rem;
+    }
+
+    .math-block {
+      margin: 16px 0;
+      padding: 14px;
+      border-radius: 10px;
+      border: 1px solid var(--panel-border);
+      background: var(--math-bg);
+      overflow-x: auto;
+      text-align: center;
+    }
+
+    #theme-toggle {
+      position: absolute;
+      top: max(10px, env(safe-area-inset-top));
+      right: max(10px, env(safe-area-inset-right));
+      z-index: 11;
+      width: 44px;
+      height: 44px;
+      border-radius: 999px;
+      border: 1px solid var(--theme-toggle-border);
+      background: var(--theme-toggle-bg);
+      color: var(--text);
+      font-size: 1.1rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 10px 22px rgba(2, 6, 23, 0.12);
+    }
+
+    #post-link {
+      position: absolute;
+      top: max(10px, env(safe-area-inset-top));
+      right: max(62px, calc(env(safe-area-inset-right) + 62px));
+      z-index: 11;
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--theme-toggle-border);
+      background: var(--theme-toggle-bg);
+      color: var(--text);
+      text-decoration: none;
+      font-weight: 600;
+      box-shadow: 0 10px 22px rgba(2, 6, 23, 0.12);
+    }
+
+    @media (max-width: 920px) {
+      #visualization {
+        grid-template-columns: 1fr;
+        grid-template-rows: 40vh 36vh auto;
+      }
+      .canvas-wrapper.wide { grid-column: 1; }
+      #ui-panel {
+        left: max(10px, env(safe-area-inset-left));
+        right: max(10px, env(safe-area-inset-right));
+        width: auto;
+      }
+      #ui-content { max-height: 44vh; }
+    }
+  </style>
+</head>
+<body>
+  <button id="theme-toggle" type="button" aria-label="Toggle color scheme">☾</button>
+  <a id="post-link" href="/blog/nonlinear-system-study/">&larr; Post</a>
+
+  <div id="ui-panel">
+    <div id="ui-header">
+      <h2>Cylinder Wake Hopf Flow</h2>
+      <span id="ui-toggle">▼</span>
+    </div>
+    <div id="ui-content">
+      <div class="control-group">
+        <label><span>Reynolds Number \(Re\)</span><span id="re-val" class="value-num">45</span></label>
+        <input type="range" id="re" min="20" max="100" step="1" value="45">
+        <div class="control-note">Single control parameter. The reduced wake model crosses onset near \(Re_c \approx 47\).</div>
+      </div>
+
+      <div class="metric-card">
+        Growth rate <strong id="mu-display">\(\mu = -0.10\)</strong><br>
+        Predicted limit-cycle radius <strong id="amp-display">\(r_\star = 0\)</strong>
+      </div>
+
+      <button id="kick-btn" type="button">Kick Wake</button>
+      <div id="status-box" class="state-steady">STEADY SYMMETRIC FLOW</div>
+    </div>
+  </div>
+
+  <div id="visualization">
+    <div class="canvas-wrapper wide">
+      <div class="canvas-title canvas-title-left">
+        Physical Space: Cylinder Wake
+        <span id="flow-subtitle" class="subtitle">Streamlines advected by a reduced-order cylinder wake model</span>
+      </div>
+      <canvas id="canvas-flow"></canvas>
+    </div>
+
+    <div class="canvas-wrapper" style="cursor: crosshair;">
+      <div class="canvas-title">
+        Phase Space: Wake Amplitude \(A(t)\)
+        <span id="phase-subtitle" class="subtitle">Click to perturb the complex amplitude</span>
+      </div>
+      <div class="axis-label axis-label-im">\(\mathrm{Im}(A)\)</div>
+      <div class="axis-label axis-label-re">\(\mathrm{Re}(A)\)</div>
+      <canvas id="canvas-phase"></canvas>
+    </div>
+
+    <div class="canvas-wrapper text-panel">
+      <h3>Reduced Wake Dynamics</h3>
+      <p>
+        This rebuild does <strong>not</strong> claim to solve the full Navier-Stokes equations in real time. Instead, it uses a classical reduced-order picture: the wake onset is controlled by a complex Stuart-Landau amplitude, while the top panel advects streamlines through a cylinder-flow field modulated by an alternating vortex street.
+      </p>
+      <p>
+        The single slider is the Reynolds number \(Re\). It changes the linear growth rate \(\mu\), so below onset the wake amplitude decays back to zero, while above onset the amplitude saturates to a stable periodic orbit.
+      </p>
+      <div class="math-block">
+        $$\frac{dA}{dt} = (\mu + i\omega_0)A - |A|^2A, \qquad \mu = c\,(Re-Re_c)$$
+      </div>
+      <p>
+        In polar form \(A = r e^{i\theta}\), the amplitude obeys \(\dot r = \mu r - r^3\). So for \(\mu &lt; 0\), the origin is stable; for \(\mu &gt; 0\), the wake settles onto a limit cycle of radius \(r_\star = \sqrt{\mu}\). The flow panel is then driven by an alternating downstream vortex pattern whose strength is tied to \(|A|\).
+      </p>
+    </div>
+  </div>
+
+  <script>
+    const themeToggle = document.getElementById('theme-toggle');
+    const uiHeader = document.getElementById('ui-header');
+    const uiContent = document.getElementById('ui-content');
+    const uiToggle = document.getElementById('ui-toggle');
+    const reSlider = document.getElementById('re');
+    const reVal = document.getElementById('re-val');
+    const muDisplay = document.getElementById('mu-display');
+    const ampDisplay = document.getElementById('amp-display');
+    const statusBox = document.getElementById('status-box');
+    const flowSubtitle = document.getElementById('flow-subtitle');
+    const phaseSubtitle = document.getElementById('phase-subtitle');
+    const kickBtn = document.getElementById('kick-btn');
+    const canvasFlow = document.getElementById('canvas-flow');
+    const ctxFlow = canvasFlow.getContext('2d', { alpha: false });
+    const canvasPhase = document.getElementById('canvas-phase');
+    const ctxPhase = canvasPhase.getContext('2d');
+
+    const THEME_KEY = 'cylinder-hopf-theme';
+    const palettes = {
+      dark: {
+        flowBg: '#030b16',
+        flowFade: 'rgba(3, 11, 22, 0.16)',
+        streamCool: 'rgba(56, 189, 248, 0.52)',
+        streamWarm: 'rgba(248, 113, 113, 0.42)',
+        wakeGhost: 'rgba(56, 189, 248, 0.18)',
+        cylinderFill0: '#f8fafc',
+        cylinderFill1: '#0f172a',
+        cylinderStroke: '#38bdf8',
+        cylinderShadow: 'rgba(2, 132, 199, 0.18)',
+        axis: '#334155',
+        limitCycle: 'rgba(248, 113, 113, 0.22)',
+        trail: '#38bdf8',
+        current: '#f8fafc',
+        clickFlash: 'rgba(56, 189, 248, %a%)'
+      },
+      light: {
+        flowBg: '#f8fbff',
+        flowFade: 'rgba(248, 251, 255, 0.18)',
+        streamCool: 'rgba(2, 132, 199, 0.5)',
+        streamWarm: 'rgba(239, 68, 68, 0.30)',
+        wakeGhost: 'rgba(2, 132, 199, 0.12)',
+        cylinderFill0: '#ffffff',
+        cylinderFill1: '#cbd5e1',
+        cylinderStroke: '#0284c7',
+        cylinderShadow: 'rgba(14, 165, 233, 0.12)',
+        axis: '#cbd5e1',
+        limitCycle: 'rgba(239, 68, 68, 0.18)',
+        trail: '#0284c7',
+        current: '#102033',
+        clickFlash: 'rgba(2, 132, 199, %a%)'
+      }
+    };
+    let colors = palettes.dark;
+
+    function applyTheme(theme) {
+      document.documentElement.dataset.theme = theme;
+      colors = palettes[theme];
+      themeToggle.textContent = theme === 'dark' ? '☀' : '☾';
+      ctxFlow.fillStyle = colors.flowBg;
+      ctxFlow.fillRect(0, 0, canvasFlow.clientWidth, canvasFlow.clientHeight);
+    }
+
+    themeToggle.addEventListener('click', () => {
+      const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+      localStorage.setItem(THEME_KEY, next);
+      applyTheme(next);
+    });
+
+    let isCollapsed = false;
+    let isMobile = window.innerWidth <= 920;
+    function syncUI(force) {
+      if (typeof force === 'boolean') isCollapsed = force;
+      uiContent.style.display = isCollapsed ? 'none' : 'block';
+      uiToggle.textContent = isCollapsed ? '▼' : '▲';
+    }
+    uiHeader.addEventListener('click', () => { isCollapsed = !isCollapsed; syncUI(); });
+
+    const Rec = 47;
+    const MU_SCALE = 0.016;
+    const OMEGA0 = 1.15;
+    const params = { Re: 45 };
+    let A = { x: 0.02, y: 0.0 };
+    let tSim = 0;
+    let historyPhase = [];
+    const MAX_HIST = 320;
+    let clickFlashAlpha = 0;
+    let clickFlashPos = { x: 0, y: 0 };
+
+    const particles = [];
+    const NUM_PARTICLES = 1700;
+    const CYL_RADIUS = 52;
+
+    function getMu() {
+      return MU_SCALE * (params.Re - Rec);
+    }
+
+    function limitRadius() {
+      return Math.max(0, Math.sqrt(Math.max(0, getMu())));
+    }
+
+    function updateReadouts() {
+      const mu = getMu();
+      reVal.textContent = params.Re.toFixed(0);
+      muDisplay.textContent = `\\(\\mu = ${mu.toFixed(2)}\\)`;
+      ampDisplay.textContent = mu > 0 ? `\\(r_\\star = ${limitRadius().toFixed(2)}\\)` : '\\(r_\\star = 0\\)';
+      const wakeOn = mu > 0;
+      statusBox.textContent = wakeOn ? 'VON KÁRMÁN WAKE (LIMIT CYCLE)' : 'STEADY SYMMETRIC FLOW';
+      statusBox.className = wakeOn ? 'state-wake' : 'state-steady';
+      flowSubtitle.textContent = wakeOn
+        ? 'Alternating vortices emerge behind the cylinder as the Hopf mode saturates'
+        : 'Streamlines stay nearly symmetric while the wake amplitude decays';
+      phaseSubtitle.textContent = wakeOn
+        ? 'The origin is unstable and trajectories spiral onto a circular limit cycle'
+        : 'The origin is a stable focus; click in the panel to kick the wake amplitude';
+      if (window.MathJax && window.MathJax.typesetPromise) {
+        window.MathJax.typesetPromise([muDisplay, ampDisplay]);
+      }
+    }
+
+    function getCylinderCenterX(width) {
+      const panelWidth = window.innerWidth > 920 ? document.getElementById('ui-panel').getBoundingClientRect().width : 0;
+      const leftPad = window.innerWidth > 920 ? panelWidth + 86 : 120;
+      return Math.max(leftPad, Math.min(width * 0.24, width - 170));
+    }
+
+    function initParticle(p, width, height, randomize) {
+      p.x = randomize ? Math.random() * width : -Math.random() * 120;
+      p.y = Math.random() * height;
+      p.px = p.x;
+      p.py = p.y;
+      p.life = Math.random();
+    }
+
+    function initParticles() {
+      particles.length = 0;
+      const w = canvasFlow.clientWidth;
+      const h = canvasFlow.clientHeight;
+      for (let i = 0; i < NUM_PARTICLES; i++) {
+        const p = {};
+        initParticle(p, w, h, true);
+        particles.push(p);
+      }
+    }
+
+    function resizeCanvases() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      [canvasFlow, canvasPhase].forEach((canvas) => {
+        canvas.width = Math.round(canvas.parentElement.clientWidth * dpr);
+        canvas.height = Math.round(canvas.parentElement.clientHeight * dpr);
+        const ctx = canvas.getContext('2d', { alpha: canvas === canvasFlow ? false : true });
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      });
+      ctxFlow.fillStyle = colors.flowBg;
+      ctxFlow.fillRect(0, 0, canvasFlow.clientWidth, canvasFlow.clientHeight);
+      initParticles();
+    }
+
+    function hopfDerivs(x, y) {
+      const mu = getMu();
+      const r2 = x * x + y * y;
+      return {
+        dx: mu * x - OMEGA0 * y - r2 * x,
+        dy: OMEGA0 * x + mu * y - r2 * y
+      };
+    }
+
+    function rk4Step(dt) {
+      const k1 = hopfDerivs(A.x, A.y);
+      const k2 = hopfDerivs(A.x + 0.5 * dt * k1.dx, A.y + 0.5 * dt * k1.dy);
+      const k3 = hopfDerivs(A.x + 0.5 * dt * k2.dx, A.y + 0.5 * dt * k2.dy);
+      const k4 = hopfDerivs(A.x + dt * k3.dx, A.y + dt * k3.dy);
+      A.x += (dt / 6) * (k1.dx + 2 * k2.dx + 2 * k3.dx + k4.dx);
+      A.y += (dt / 6) * (k1.dy + 2 * k2.dy + 2 * k3.dy + k4.dy);
+      const cap = 3.2;
+      if (Math.abs(A.x) > cap) A.x = cap * Math.sign(A.x);
+      if (Math.abs(A.y) > cap) A.y = cap * Math.sign(A.y);
+    }
+
+    function getWakeVortices(cylX, cylY, amp) {
+      if (amp < 0.04) return [];
+      const vortices = [];
+      const shift = (tSim * (0.85 + 0.015 * params.Re)) % 1;
+      const spacing = 78;
+      for (let k = 0; k < 8; k++) {
+        const sign = k % 2 === 0 ? 1 : -1;
+        const x = cylX + CYL_RADIUS + 36 + spacing * (k + shift);
+        const yOffset = (0.88 * CYL_RADIUS + 8 * Math.sin(0.55 * tSim + 0.5 * k)) * Math.min(1.3, amp);
+        vortices.push({
+          x,
+          y: cylY + sign * yOffset,
+          gamma: sign * 1550 * amp * Math.exp(-(x - cylX) / 640),
+          radius: 10 + 14 * Math.min(1.2, amp)
+        });
+      }
+      return vortices;
+    }
+
+    function getVelocity(px, py, width, height) {
+      const cylX = getCylinderCenterX(width);
+      const cylY = height / 2;
+      const U = 118;
+      const dx = px - cylX;
+      const dy = py - cylY;
+      const r2 = dx * dx + dy * dy;
+      const r = Math.sqrt(r2);
+      const R = CYL_RADIUS;
+      const R2 = R * R;
+
+      if (r < R * 0.98) return { vx: 0, vy: 0, inside: true };
+
+      let vx = U;
+      let vy = 0;
+
+      if (r > R * 1.02) {
+        const cosT = dx / r;
+        const sinT = dy / r;
+        const vr = U * (1 - R2 / r2) * cosT;
+        const vt = -U * (1 + R2 / r2) * sinT;
+        vx = vr * cosT - vt * sinT;
+        vy = vr * sinT + vt * cosT;
+      }
+
+      const amp = Math.hypot(A.x, A.y);
+      if (dx > R) {
+        const downstream = dx - R;
+        const wakeWidth = R * (1.05 + 0.0017 * downstream);
+        const deficit = Math.exp(-(dy * dy) / (2 * wakeWidth * wakeWidth)) * Math.exp(-downstream / 520);
+        vx -= U * 0.34 * Math.min(1.3, amp) * deficit;
+
+        const vortices = getWakeVortices(cylX, cylY, amp);
+        for (const vortex of vortices) {
+          const rx = px - vortex.x;
+          const ry = py - vortex.y;
+          const core2 = vortex.radius * vortex.radius;
+          const factor = vortex.gamma / (2 * Math.PI * (rx * rx + ry * ry + core2));
+          vx += -factor * ry;
+          vy += factor * rx;
+        }
+      }
+
+      return { vx, vy, inside: false };
+    }
+
+    function drawCylinder(cylX, cylY) {
+      ctxFlow.beginPath();
+      ctxFlow.arc(cylX + 10, cylY + 12, CYL_RADIUS + 7, 0, Math.PI * 2);
+      ctxFlow.fillStyle = colors.cylinderShadow;
+      ctxFlow.fill();
+
+      ctxFlow.beginPath();
+      ctxFlow.arc(cylX, cylY, CYL_RADIUS, 0, Math.PI * 2);
+      const gradient = ctxFlow.createRadialGradient(cylX - 22, cylY - 22, CYL_RADIUS * 0.18, cylX, cylY, CYL_RADIUS);
+      gradient.addColorStop(0, colors.cylinderFill0);
+      gradient.addColorStop(1, colors.cylinderFill1);
+      ctxFlow.fillStyle = gradient;
+      ctxFlow.fill();
+      ctxFlow.lineWidth = 2.6;
+      ctxFlow.strokeStyle = colors.cylinderStroke;
+      ctxFlow.stroke();
+
+      ctxFlow.beginPath();
+      ctxFlow.arc(cylX, cylY, CYL_RADIUS - 7, -2.3, -0.75);
+      ctxFlow.strokeStyle = 'rgba(255,255,255,0.42)';
+      ctxFlow.lineWidth = 2.4;
+      ctxFlow.stroke();
+    }
+
+    function drawWakeGhosts(cylX, cylY) {
+      const amp = Math.hypot(A.x, A.y);
+      if (amp < 0.06) return;
+      const vortices = getWakeVortices(cylX, cylY, amp).slice(0, 6);
+      for (const vortex of vortices) {
+        ctxFlow.beginPath();
+        ctxFlow.arc(vortex.x, vortex.y, vortex.radius * 0.85, 0, Math.PI * 2);
+        ctxFlow.strokeStyle = colors.wakeGhost;
+        ctxFlow.lineWidth = 1.2;
+        ctxFlow.stroke();
+      }
+    }
+
+    function drawFlow(dt) {
+      const w = canvasFlow.clientWidth;
+      const h = canvasFlow.clientHeight;
+      const cylX = getCylinderCenterX(w);
+      const cylY = h / 2;
+
+      ctxFlow.fillStyle = colors.flowFade;
+      ctxFlow.fillRect(0, 0, w, h);
+
+      drawWakeGhosts(cylX, cylY);
+
+      for (const p of particles) {
+        p.px = p.x;
+        p.py = p.y;
+        const vel = getVelocity(p.x, p.y, w, h);
+        if (vel.inside || p.x > w + 20 || p.x < -160 || p.y < -20 || p.y > h + 20 || p.life > 1.25) {
+          initParticle(p, w, h, false);
+          continue;
+        }
+        p.x += vel.vx * dt;
+        p.y += vel.vy * dt;
+        p.life += dt * 0.12;
+        ctxFlow.beginPath();
+        ctxFlow.moveTo(p.px, p.py);
+        ctxFlow.lineTo(p.x, p.y);
+        ctxFlow.strokeStyle = vel.vy >= 0 ? colors.streamCool : colors.streamWarm;
+        ctxFlow.lineWidth = 1.2;
+        ctxFlow.stroke();
+      }
+
+      drawCylinder(cylX, cylY);
+    }
+
+    function drawPhase() {
+      const w = canvasPhase.clientWidth;
+      const h = canvasPhase.clientHeight;
+      const cx = w / 2;
+      const cy = h / 2;
+      const scale = Math.min(w, h) * 0.22;
+
+      ctxPhase.clearRect(0, 0, w, h);
+      ctxPhase.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--canvas-bg');
+      ctxPhase.fillRect(0, 0, w, h);
+
+      ctxPhase.strokeStyle = colors.axis;
+      ctxPhase.lineWidth = 1;
+      ctxPhase.beginPath(); ctxPhase.moveTo(0, cy); ctxPhase.lineTo(w, cy); ctxPhase.stroke();
+      ctxPhase.beginPath(); ctxPhase.moveTo(cx, 0); ctxPhase.lineTo(cx, h); ctxPhase.stroke();
+
+      const rStar = limitRadius();
+      if (rStar > 0) {
+        ctxPhase.beginPath();
+        ctxPhase.arc(cx, cy, Math.min(rStar * scale, scale * 2.25), 0, Math.PI * 2);
+        ctxPhase.strokeStyle = colors.limitCycle;
+        ctxPhase.lineWidth = 2.2;
+        ctxPhase.stroke();
+      }
+
+      if (historyPhase.length > 1) {
+        ctxPhase.beginPath();
+        for (let i = 0; i < historyPhase.length; i++) {
+          const px = cx + historyPhase[i].x * scale;
+          const py = cy - historyPhase[i].y * scale;
+          if (i === 0) ctxPhase.moveTo(px, py); else ctxPhase.lineTo(px, py);
+        }
+        ctxPhase.strokeStyle = colors.trail;
+        ctxPhase.lineWidth = 2.2;
+        ctxPhase.stroke();
+      }
+
+      const px = cx + A.x * scale;
+      const py = cy - A.y * scale;
+      ctxPhase.beginPath();
+      ctxPhase.arc(px, py, 5.5, 0, Math.PI * 2);
+      ctxPhase.fillStyle = colors.current;
+      ctxPhase.fill();
+
+      if (clickFlashAlpha > 0) {
+        ctxPhase.beginPath();
+        ctxPhase.arc(clickFlashPos.x, clickFlashPos.y, 12 + (1 - clickFlashAlpha) * 22, 0, Math.PI * 2);
+        ctxPhase.strokeStyle = colors.clickFlash.replace('%a%', clickFlashAlpha.toFixed(3));
+        ctxPhase.lineWidth = 3;
+        ctxPhase.stroke();
+        clickFlashAlpha = Math.max(0, clickFlashAlpha - 0.05);
+      }
+    }
+
+    reSlider.addEventListener('input', (e) => {
+      params.Re = parseFloat(e.target.value);
+      updateReadouts();
+    });
+
+    kickBtn.addEventListener('click', () => {
+      A.x += 0.22;
+      A.y -= 0.18;
+      historyPhase.length = 0;
+    });
+
+    canvasPhase.addEventListener('pointerdown', (e) => {
+      const rect = canvasPhase.getBoundingClientRect();
+      const scale = Math.min(canvasPhase.clientWidth, canvasPhase.clientHeight) * 0.22;
+      clickFlashPos = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+      A.x = (clickFlashPos.x - canvasPhase.clientWidth / 2) / scale;
+      A.y = -(clickFlashPos.y - canvasPhase.clientHeight / 2) / scale;
+      historyPhase.length = 0;
+      clickFlashAlpha = 1;
+    });
+
+    window.addEventListener('resize', () => {
+      const nextMobile = window.innerWidth <= 920;
+      if (nextMobile !== isMobile) {
+        isMobile = nextMobile;
+        syncUI(nextMobile);
+      }
+      resizeCanvases();
+    });
+
+    function animate(now) {
+      if (!animate.last) animate.last = now;
+      const dt = Math.min(0.04, (now - animate.last) / 1000);
+      animate.last = now;
+      tSim += dt;
+
+      for (let i = 0; i < 3; i++) rk4Step(dt / 3);
+      historyPhase.push({ x: A.x, y: A.y });
+      if (historyPhase.length > MAX_HIST) historyPhase.shift();
+
+      drawFlow(dt);
+      drawPhase();
+      requestAnimationFrame(animate);
+    }
+
+    const preferredTheme = localStorage.getItem(THEME_KEY) || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    applyTheme(preferredTheme);
+    syncUI(window.innerWidth <= 920);
+    updateReadouts();
+    resizeCanvases();
+    initParticles();
+    if (window.MathJax && window.MathJax.typesetPromise) {
+      window.MathJax.typesetPromise([document.body]);
+    }
+    requestAnimationFrame(animate);
+  </script>
+</body>
+</html>
