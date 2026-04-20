@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Gmsh Cylinder Flow Mesh Creator</title>
+<style>
+  :root {
+    --bg: #1e1e22; --panel: #26272c; --ink: #e8e8ea; --muted: #9aa0a6;
+    --accent: #4ea1ff; --border: #3a3b40; --input-bg: #1a1b1e;
+    --btn-bg: #32343a; --btn-hover: #3c3e45; --canvas-bg: #121317;
+    --col-domain: #4ea1ff; --col-cyl: #ff6b6b; --col-split: #ffb454;
+    --col-ref: #c78fff;
+    --col-mesh-in: rgba(90,214,125,0.75); --col-mesh-out: rgba(90,214,125,0.45);
+    --col-pt-label: #bbb; --col-arrow: #9aa0a6;
+    --col-warn: #ffb454;
+  }
+  body[data-theme="light"] {
+    --bg: #f2f3f6; --panel: #ffffff; --ink: #1a1b1e; --muted: #5f6368;
+    --accent: #1a73e8; --border: #d6d8dc; --input-bg: #ffffff;
+    --btn-bg: #eceef1; --btn-hover: #dde0e5; --canvas-bg: #fafbfc;
+    --col-domain: #1a73e8; --col-cyl: #d93025; --col-split: #f29900;
+    --col-ref: #8e44ad;
+    --col-mesh-in: rgba(25,135,84,0.9); --col-mesh-out: rgba(25,135,84,0.55);
+    --col-pt-label: #444; --col-arrow: #5f6368;
+    --col-warn: #b05a00;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    display: flex; font-family: -apple-system, system-ui, Segoe UI, sans-serif;
+    background: var(--bg); color: var(--ink); font-size: 13px;
+  }
+  #left { width: 340px; min-width: 300px; background: var(--panel);
+    border-right: 1px solid var(--border); padding: 12px 14px; overflow-y: auto; }
+  #right { flex: 1; position: relative; display: flex; flex-direction: column; }
+  h1 { font-size: 15px; margin: 0 0 10px; display: flex; align-items: center;
+    justify-content: space-between; gap: 8px; }
+  h2 { font-size: 12px; margin: 14px 0 6px; color: var(--accent);
+    text-transform: uppercase; letter-spacing: .5px; }
+  label { display: grid; grid-template-columns: 120px 1fr; align-items: center;
+    gap: 8px; margin: 4px 0; }
+  label > span { color: var(--muted); font-size: 12px; }
+  input[type="number"], input[type="text"], select {
+    background: var(--input-bg); color: var(--ink); border: 1px solid var(--border);
+    border-radius: 4px; padding: 4px 6px; font-size: 12px; width: 100%;
+  }
+  input[type="checkbox"] { accent-color: var(--accent); }
+  .row { display: flex; gap: 6px; } .row > * { flex: 1; }
+  button {
+    background: var(--btn-bg); color: var(--ink); border: 1px solid var(--border);
+    padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;
+  }
+  button:hover { background: var(--btn-hover); }
+  button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  button.primary:hover { filter: brightness(1.1); }
+  #canvasWrap { flex: 1; position: relative; overflow: hidden; background: var(--canvas-bg); }
+  canvas { display: block; width: 100%; height: 100%; }
+  #toolbar { display: flex; gap: 8px; padding: 8px 12px;
+    border-bottom: 1px solid var(--border); background: var(--panel); align-items: center; }
+  #toolbar label { display: inline-flex; grid-template-columns: none; gap: 4px; margin: 0; }
+  #status { margin-left: auto; color: var(--muted); font-size: 12px; }
+  textarea { width: 100%; background: var(--input-bg); color: var(--ink);
+    border: 1px solid var(--border); border-radius: 4px;
+    font-family: ui-monospace, monospace; font-size: 11px; padding: 6px; resize: vertical; }
+  details { margin: 6px 0; }
+  summary { cursor: pointer; color: var(--muted); font-size: 12px; padding: 2px 0; }
+  .hint { color: var(--muted); font-size: 11px; margin: 2px 0 6px; }
+  .legend { position: absolute; bottom: 8px; left: 8px;
+    background: color-mix(in srgb, var(--panel) 85%, transparent);
+    padding: 6px 10px; border-radius: 4px; font-size: 11px; color: var(--ink);
+    line-height: 1.6; border: 1px solid var(--border); }
+  .legend .sw { display: inline-block; width: 14px; height: 2px;
+    margin-right: 6px; vertical-align: middle; }
+  .theme-toggle { background: transparent; border: 1px solid var(--border);
+    padding: 2px 8px; font-size: 11px; cursor: pointer; }
+</style>
+</head>
+<body data-theme="dark">
+
+<div id="left">
+  <h1>
+    Gmsh Cylinder Mesh
+    <button class="theme-toggle" id="btnTheme" title="Toggle theme">Light</button>
+  </h1>
+
+  <h2>Domain</h2>
+  <label><span>Shape</span>
+    <select id="domainShape">
+      <option value="circle">Circle</option>
+      <option value="rectangle">Rectangle</option>
+    </select>
+  </label>
+  <label id="rowDomR"><span>Radius</span><input type="number" id="domainR" value="100" step="1" /></label>
+  <label id="rowRectW" style="display:none;"><span>Width</span><input type="number" id="rectW" value="200" step="1" /></label>
+  <label id="rowRectH" style="display:none;"><span>Height</span><input type="number" id="rectH" value="100" step="1" /></label>
+  <label><span>Center X</span><input type="number" id="domainCx" value="0" step="0.1" /></label>
+  <label><span>Center Y</span><input type="number" id="domainCy" value="0" step="0.1" /></label>
+
+  <h2>Cylinder</h2>
+  <label><span>Shape</span>
+    <select id="cylShape">
+      <option value="circle">Circle</option>
+      <option value="square">Square</option>
+      <option value="polygon">Polygon (N sides)</option>
+    </select>
+  </label>
+  <label><span>Diameter / side</span><input type="number" id="cylD" value="1" step="0.1" /></label>
+  <div class="hint">Circle → diameter. Square/polygon → side length.</div>
+  <label><span>Position X</span><input type="number" id="cylX" value="0" step="0.1" /></label>
+  <label><span>Position Y</span><input type="number" id="cylY" value="0" step="0.1" /></label>
+  <label id="rowSides" style="display:none;"><span>Sides (N)</span><input type="number" id="cylN" value="6" min="3" step="1" /></label>
+  <label><span>Incidence angle (°)</span><input type="number" id="cylAngle" value="0" step="1" /></label>
+  <div class="hint">Flow fixed +X (left→right). Angle rotates non-circular cylinders only; ignored for circles (rotational symmetry). Boundary groups always: left=in, right=out, top/bottom=farfield.</div>
+  <div id="angleHint" class="hint" style="display:flex; gap:6px; align-items:center;"></div>
+
+  <h2>Mesh (far-field)</h2>
+  <label><span>Arc points (NC)</span><input type="number" id="nArc" value="19" min="2" step="1" /></label>
+  <div class="hint">For polygon: points per side / per outer arc segment.</div>
+  <label><span>Radial points (Np)</span><input type="number" id="nRad" value="70" min="2" step="1" /></label>
+  <label><span>Progression</span><input type="number" id="prog" value="1.1" step="0.01" /></label>
+  <label><span>Near-cyl size</span><input type="number" id="hCyl" value="0.03" step="0.001" /></label>
+  <label><span>Far-field size</span><input type="number" id="hFar" value="1.0" step="0.1" /></label>
+
+  <h2>Refinement zone</h2>
+  <label><span>Enable</span><input type="checkbox" id="refEnable" /></label>
+  <label><span>Outer radius</span><input type="number" id="refR" value="5" step="0.5" /></label>
+  <div class="hint">Concentric ring at this radius (e.g. 5 for 5×D when D=1).</div>
+  <label><span>Inner radial pts</span><input type="number" id="refNRad" value="40" min="2" step="1" /></label>
+  <label><span>Inner progression</span><input type="number" id="refProg" value="1.08" step="0.01" /></label>
+
+  <h2>Elements</h2>
+  <label><span>Element order</span><input type="number" id="elOrder" value="7" min="1" max="10" step="1" /></label>
+  <label><span>Recombine (quads)</span><input type="checkbox" id="recombine" checked /></label>
+  <label><span>Transfinite</span><input type="checkbox" id="transfinite" checked /></label>
+
+  <h2>Physical names</h2>
+  <label><span>Inlet</span><input type="text" id="nameIn" value="in" /></label>
+  <label><span>Outlet</span><input type="text" id="nameOut" value="out" /></label>
+  <label><span>Farfield</span><input type="text" id="nameFar" value="farfield" /></label>
+  <label><span>Cylinder</span><input type="text" id="nameCyl" value="cyl" /></label>
+  <label><span>Fluid</span><input type="text" id="nameFluid" value="fluid" /></label>
+
+  <h2>File</h2>
+  <div class="row">
+    <button class="primary" id="btnExport">Export .geo</button>
+    <button id="btnImport">Import</button>
+    <input type="file" id="fileInput" accept=".geo,.txt" style="display:none" />
+  </div>
+  <details>
+    <summary>Preview .geo text</summary>
+    <textarea id="preview" rows="14" readonly></textarea>
+  </details>
+</div>
+
+<div id="right">
+  <div id="toolbar">
+    <button id="btnFit">Fit view</button>
+    <button id="btnZoomCyl">Zoom cylinder</button>
+    <button id="btnZoomRef">Zoom refinement</button>
+    <label><span>Show mesh</span><input type="checkbox" id="showMesh" checked /></label>
+    <span id="status"></span>
+  </div>
+  <div id="canvasWrap">
+    <canvas id="cv"></canvas>
+    <div class="legend" id="legend">
+      <div><span class="sw" style="background:var(--col-domain)"></span>Outer domain</div>
+      <div><span class="sw" style="background:var(--col-cyl)"></span>Cylinder</div>
+      <div><span class="sw" style="background:var(--col-split)"></span>Split / radial lines</div>
+      <div><span class="sw" style="background:var(--col-ref)"></span>Refinement ring</div>
+      <div><span class="sw" style="background:var(--col-mesh-in)"></span>Mesh preview</div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ========== State ========== */
+const params = {
+  domainShape: 'circle', domainR: 100, rectW: 200, rectH: 100,
+  domainCx: 0, domainCy: 0,
+  cylShape: 'circle', cylD: 1, cylX: 0, cylY: 0, cylN: 6, cylAngle: 0,
+  nArc: 19, nRad: 70, prog: 1.1, hCyl: 0.03, hFar: 1.0,
+  refEnable: false, refR: 5, refNRad: 40, refProg: 1.08,
+  elOrder: 7, recombine: true, transfinite: true,
+  nameIn: 'in', nameOut: 'out', nameFar: 'farfield',
+  nameCyl: 'cyl', nameFluid: 'fluid',
+  showMesh: true,
+};
+
+function bind(id, key, type='number') {
+  const el = document.getElementById(id);
+  const set = () => {
+    let v;
+    if (type === 'number') v = parseFloat(el.value);
+    else if (type === 'bool') v = el.checked;
+    else v = el.value;
+    params[key] = v;
+    onParamChange();
+  };
+  el.addEventListener('input', set);
+  el.addEventListener('change', set);
+}
+bind('domainShape', 'domainShape', 'str');
+bind('domainR', 'domainR'); bind('rectW', 'rectW'); bind('rectH', 'rectH');
+bind('domainCx', 'domainCx'); bind('domainCy', 'domainCy');
+bind('cylShape', 'cylShape', 'str');
+bind('cylD', 'cylD'); bind('cylX', 'cylX'); bind('cylY', 'cylY');
+bind('cylN', 'cylN'); bind('cylAngle', 'cylAngle');
+bind('nArc', 'nArc'); bind('nRad', 'nRad'); bind('prog', 'prog');
+bind('hCyl', 'hCyl'); bind('hFar', 'hFar');
+bind('refEnable', 'refEnable', 'bool');
+bind('refR', 'refR'); bind('refNRad', 'refNRad'); bind('refProg', 'refProg');
+bind('elOrder', 'elOrder');
+bind('recombine', 'recombine', 'bool'); bind('transfinite', 'transfinite', 'bool');
+bind('nameIn', 'nameIn', 'str'); bind('nameOut', 'nameOut', 'str');
+bind('nameFar', 'nameFar', 'str');
+bind('nameCyl', 'nameCyl', 'str'); bind('nameFluid', 'nameFluid', 'str');
+bind('showMesh', 'showMesh', 'bool');
+
+function updateSidesVisibility() {
+  document.getElementById('rowSides').style.display =
+    params.cylShape === 'polygon' ? '' : 'none';
+}
+function updateDomainVisibility() {
+  const isCirc = params.domainShape === 'circle';
+  document.getElementById('rowDomR').style.display  = isCirc ? '' : 'none';
+  document.getElementById('rowRectW').style.display = isCirc ? 'none' : '';
+  document.getElementById('rowRectH').style.display = isCirc ? 'none' : '';
+}
+document.getElementById('cylShape').addEventListener('change', updateSidesVisibility);
+document.getElementById('domainShape').addEventListener('change', updateDomainVisibility);
+
+/* ========== Theme ========== */
+const btnTheme = document.getElementById('btnTheme');
+btnTheme.addEventListener('click', () => {
+  const cur = document.body.getAttribute('data-theme');
+  const next = cur === 'dark' ? 'light' : 'dark';
+  document.body.setAttribute('data-theme', next);
+  btnTheme.textContent = next === 'dark' ? 'Light' : 'Dark';
+  draw();
+});
+function cssVar(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim()
+      || getComputedStyle(document.body).getPropertyValue(name).trim();
+}
+
+/* ========== Canvas & view ========== */
+const canvas = document.getElementById('cv');
+const ctx = canvas.getContext('2d');
+let view = { scale: 4, cx: 0, cy: 0 };
+
+function resize() {
+  const r = canvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = r.width * dpr; canvas.height = r.height * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  draw();
+}
+window.addEventListener('resize', resize);
+
+function w2s(x, y) {
+  const r = canvas.getBoundingClientRect();
+  return [r.width/2 + (x - view.cx) * view.scale,
+          r.height/2 - (y - view.cy) * view.scale];
+}
+function s2w(px, py) {
+  const r = canvas.getBoundingClientRect();
+  return [view.cx + (px - r.width/2) / view.scale,
+          view.cy - (py - r.height/2) / view.scale];
+}
+function fitView(target='domain') {
+  const r = canvas.getBoundingClientRect();
+  if (target === 'domain') {
+    view.cx = params.domainCx; view.cy = params.domainCy;
+    if (params.domainShape === 'rectangle') {
+      const W = params.rectW * 1.1, H = params.rectH * 1.1;
+      view.scale = Math.min(r.width / W, r.height / H);
+    } else {
+      const R = params.domainR * 1.1;
+      view.scale = Math.min(r.width, r.height) / (2 * R);
+    }
+  } else if (target === 'ref') {
+    const R = params.refR * 1.3;
+    view.cx = params.cylX; view.cy = params.cylY;
+    view.scale = Math.min(r.width, r.height) / (2 * R);
+  } else {
+    const R = params.cylD * 2;
+    view.cx = params.cylX; view.cy = params.cylY;
+    view.scale = Math.min(r.width, r.height) / (2 * R);
+  }
+  draw();
+}
+document.getElementById('btnFit').addEventListener('click', () => fitView('domain'));
+document.getElementById('btnZoomCyl').addEventListener('click', () => fitView('cyl'));
+document.getElementById('btnZoomRef').addEventListener('click', () => fitView('ref'));
+
+canvas.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const [wx, wy] = s2w(e.offsetX, e.offsetY);
+  view.scale *= Math.pow(1.0015, -e.deltaY);
+  const [nx, ny] = s2w(e.offsetX, e.offsetY);
+  view.cx += wx - nx; view.cy += wy - ny;
+  draw();
+}, { passive: false });
+
+let dragging = null;
+canvas.addEventListener('mousedown', (e) => { dragging = { x: e.offsetX, y: e.offsetY }; });
+canvas.addEventListener('mousemove', (e) => {
+  if (!dragging) return;
+  const dx = (e.offsetX - dragging.x) / view.scale;
+  const dy = (e.offsetY - dragging.y) / view.scale;
+  view.cx -= dx; view.cy += dy;
+  dragging = { x: e.offsetX, y: e.offsetY };
+  draw();
+});
+window.addEventListener('mouseup', () => dragging = null);
+
+/* ========== Geometry model ========== */
+function buildModel() {
+  const p = params;
+  const ang = p.cylAngle * Math.PI / 180;
+  const R = p.domainR;
+  const domCenterSame = (p.domainCx === p.cylX && p.domainCy === p.cylY);
+
+  // --- Rectangular outer domain ---
+  if (p.domainShape === 'rectangle') {
+    const W = p.rectW, H = p.rectH;
+    const cx = p.domainCx, cy = p.domainCy;
+    const N = 4;
+    // Rect corners CCW from top-right
+    const outerPts = [
+      { x: cx + W/2, y: cy + H/2 },  // Q0 TR
+      { x: cx - W/2, y: cy + H/2 },  // Q1 TL
+      { x: cx - W/2, y: cy - H/2 },  // Q2 BL
+      { x: cx + W/2, y: cy - H/2 },  // Q3 BR
+    ];
+    let shape, rCyl, cornerPts;
+    if (p.cylShape === 'circle') {
+      shape = 'circle';
+      rCyl = p.cylD / 2;
+      // Split points aimed at rect corners (radial)
+      cornerPts = outerPts.map(Q => {
+        const a = Math.atan2(Q.y - p.cylY, Q.x - p.cylX);
+        return { x: p.cylX + rCyl * Math.cos(a), y: p.cylY + rCyl * Math.sin(a) };
+      });
+    } else {
+      // square or polygon (forced N=4 under rect domain)
+      shape = 'polygon';
+      const Lsz = p.cylD;
+      rCyl = Lsz / (2 * Math.sin(Math.PI / 4));  // square circumradius
+      cornerPts = [];
+      for (let k = 0; k < 4; k++) {
+        const theta = ang + Math.PI/4 + k * Math.PI/2;
+        cornerPts.push({ x: p.cylX + rCyl * Math.cos(theta),
+                         y: p.cylY + rCyl * Math.sin(theta) });
+      }
+    }
+    const m = { shape, domainShape: 'rectangle', N,
+                cornerPts, outerPts, rCyl, W, H, ang, domCenterSame };
+    const maxRefR = Math.min(W, H) / 2 * 0.95;
+    if (p.refEnable && p.refR > rCyl && p.refR < maxRefR) {
+      m.refR = p.refR;
+      m.ringPts = cornerPts.map(C => {
+        const a = Math.atan2(C.y - p.cylY, C.x - p.cylX);
+        return { x: p.cylX + p.refR * Math.cos(a), y: p.cylY + p.refR * Math.sin(a) };
+      });
+    }
+    return m;
+  }
+
+  // --- Circular outer domain ---
+  if (p.cylShape === 'circle') {
+    // Circular cylinder is rotationally symmetric: lock the split
+    // perpendicular to the fixed +X flow so boundary labels stay on
+    // the correct side regardless of the (meaningless) incidence angle.
+    const ux = 1, uy = 0;
+    const nx = 0, ny = 1;
+    const rCyl = p.cylD / 2;
+    const cornerPts = [
+      { x: p.cylX + nx * rCyl, y: p.cylY + ny * rCyl },  // P1  (+n side)
+      { x: p.cylX - nx * rCyl, y: p.cylY - ny * rCyl },  // P2  (-n side)
+    ];
+    const outerPts = [
+      { x: p.domainCx + nx * R, y: p.domainCy + ny * R },
+      { x: p.domainCx - nx * R, y: p.domainCy - ny * R },
+    ];
+    const m = { shape: 'circle', N: 2, ang, cornerPts, outerPts,
+                rCyl, R, ux, uy, nx, ny, domCenterSame };
+    if (p.refEnable && p.refR > rCyl && p.refR < R) {
+      m.refR = p.refR;
+      m.ringPts = [
+        { x: p.cylX + nx * p.refR, y: p.cylY + ny * p.refR },
+        { x: p.cylX - nx * p.refR, y: p.cylY - ny * p.refR },
+      ];
+    }
+    return m;
+  }
+
+  // Polygon (square = N=4)
+  const N = p.cylShape === 'square' ? 4 : Math.max(3, Math.round(p.cylN));
+  const L = p.cylD;
+  const rCirc = L / (2 * Math.sin(Math.PI / N));
+  const cornerPts = [], outerPts = [];
+  const dirs = [];
+  for (let k = 0; k < N; k++) {
+    const theta = ang + Math.PI / N + k * 2 * Math.PI / N;
+    const ct = Math.cos(theta), st = Math.sin(theta);
+    dirs.push({ ct, st, theta });
+    cornerPts.push({ x: p.cylX + rCirc * ct, y: p.cylY + rCirc * st });
+    if (domCenterSame) {
+      outerPts.push({ x: p.domainCx + R * ct, y: p.domainCy + R * st });
+    } else {
+      // Intersect ray from cyl center in direction (ct,st) with domain circle
+      const ax = p.cylX - p.domainCx, ay = p.cylY - p.domainCy;
+      const b = 2 * (ax * ct + ay * st);
+      const c = ax*ax + ay*ay - R*R;
+      const t = (-b + Math.sqrt(Math.max(b*b - 4*c, 0))) / 2;
+      outerPts.push({ x: p.cylX + t * ct, y: p.cylY + t * st });
+    }
+  }
+  const m = { shape: 'polygon', N, ang, cornerPts, outerPts, dirs,
+              rCyl: rCirc, R, domCenterSame };
+  if (p.refEnable && p.refR > rCirc && p.refR < R) {
+    m.refR = p.refR;
+    m.ringPts = dirs.map(d => ({ x: p.cylX + p.refR * d.ct, y: p.cylY + p.refR * d.st }));
+  }
+  return m;
+}
+
+/* ========== Draw helpers ========== */
+function drawCircle(cx, cy, r) {
+  const [sx, sy] = w2s(cx, cy);
+  ctx.beginPath(); ctx.arc(sx, sy, r * view.scale, 0, Math.PI * 2); ctx.stroke();
+}
+function drawPolyOutline(pts, closed=true) {
+  ctx.beginPath();
+  for (let i = 0; i < pts.length; i++) {
+    const [sx, sy] = w2s(pts[i].x, pts[i].y);
+    if (i === 0) ctx.moveTo(sx, sy); else ctx.lineTo(sx, sy);
+  }
+  if (closed) ctx.closePath();
+  ctx.stroke();
+}
+function drawLine(a, b) {
+  const [ax, ay] = w2s(a.x, a.y);
+  const [bx, by] = w2s(b.x, b.y);
+  ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+}
+function drawPt(p, color, label) {
+  const [sx, sy] = w2s(p.x, p.y);
+  ctx.fillStyle = color;
+  ctx.beginPath(); ctx.arc(sx, sy, 3, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = cssVar('--col-pt-label');
+  ctx.font = '10px sans-serif';
+  ctx.fillText(label, sx + 5, sy - 5);
+}
+function drawFlowArrow() {
+  const r = canvas.getBoundingClientRect();
+  ctx.save();
+  ctx.strokeStyle = cssVar('--col-arrow'); ctx.fillStyle = cssVar('--col-arrow');
+  ctx.lineWidth = 1.2;
+  const y = r.height - 30, x0 = 20, x1 = 80;
+  ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x1, y); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x1, y); ctx.lineTo(x1-6, y-4); ctx.lineTo(x1-6, y+4);
+  ctx.closePath(); ctx.fill();
+  ctx.font = '11px sans-serif';
+  ctx.fillText('flow +X', x0, y - 6);
+  ctx.restore();
+}
+
+/* ========== Transfinite mesh preview ========== */
+function sampleLine(a, b, n) {
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    const t = i / (n - 1);
+    out.push({ x: a.x + t * (b.x - a.x), y: a.y + t * (b.y - a.y) });
+  }
+  return out;
+}
+function sampleArcShort(cx, cy, r, a0, a1, n) {
+  let d = a1 - a0;
+  while (d > Math.PI) d -= 2 * Math.PI;
+  while (d < -Math.PI) d += 2 * Math.PI;
+  const pts = [];
+  for (let i = 0; i < n; i++) {
+    const t = i / (n - 1);
+    const a = a0 + d * t;
+    pts.push({ x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) });
+  }
+  return pts;
+}
+function sampleArcThrough(cx, cy, r, pA, pB, sideVec, n) {
+  // Arc from pA to pB whose midpoint lies on the sideVec half-plane.
+  const a0 = Math.atan2(pA.y - cy, pA.x - cx);
+  const a1 = Math.atan2(pB.y - cy, pB.x - cx);
+  let d = a1 - a0;
+  while (d <= -Math.PI) d += 2 * Math.PI;
+  while (d > Math.PI) d -= 2 * Math.PI;
+  const am = a0 + d / 2;
+  const midDotSide = Math.cos(am) * sideVec.x + Math.sin(am) * sideVec.y;
+  if (midDotSide < 0) d = d > 0 ? d - 2 * Math.PI : d + 2 * Math.PI;
+  const pts = [];
+  for (let i = 0; i < n; i++) {
+    const t = i / (n - 1);
+    const a = a0 + d * t;
+    pts.push({ x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) });
+  }
+  return pts;
+}
+function radialProgression(n, r) {
+  const denom = (r === 1) ? (n - 1) : (Math.pow(r, n - 1) - 1) / (r - 1);
+  const out = new Array(n);
+  for (let i = 0; i < n; i++) {
+    out[i] = (r === 1) ? (i / (n - 1)) : (Math.pow(r, i) - 1) / (r - 1) / denom;
+  }
+  return out;
+}
+function drawTransfiniteBlock(innerPts, outerPts, nRad, prog, color) {
+  const nArc = innerPts.length;
+  nRad = Math.max(2, Math.min(nRad, 200));
+  const s = radialProgression(nRad, prog);
+  ctx.strokeStyle = color; ctx.lineWidth = 0.5;
+  // Lines parallel to arc direction
+  for (let j = 0; j < nRad; j++) {
+    ctx.beginPath();
+    for (let i = 0; i < nArc; i++) {
+      const t = s[j];
+      const x = innerPts[i].x * (1 - t) + outerPts[i].x * t;
+      const y = innerPts[i].y * (1 - t) + outerPts[i].y * t;
+      const [sx, sy] = w2s(x, y);
+      if (i === 0) ctx.moveTo(sx, sy); else ctx.lineTo(sx, sy);
+    }
+    ctx.stroke();
+  }
+  // Lines parallel to radial direction
+  for (let i = 0; i < nArc; i++) {
+    ctx.beginPath();
+    for (let j = 0; j < nRad; j++) {
+      const t = s[j];
+      const x = innerPts[i].x * (1 - t) + outerPts[i].x * t;
+      const y = innerPts[i].y * (1 - t) + outerPts[i].y * t;
+      const [sx, sy] = w2s(x, y);
+      if (j === 0) ctx.moveTo(sx, sy); else ctx.lineTo(sx, sy);
+    }
+    ctx.stroke();
+  }
+}
+
+/* ========== Main draw ========== */
+function draw() {
+  const r = canvas.getBoundingClientRect();
+  ctx.clearRect(0, 0, r.width, r.height);
+  const m = buildModel();
+  const p = params;
+
+  // Outer domain
+  ctx.strokeStyle = cssVar('--col-domain'); ctx.lineWidth = 1.2;
+  if (p.domainShape === 'circle') drawCircle(p.domainCx, p.domainCy, p.domainR);
+  else if (p.domainShape === 'rectangle') drawPolyOutline(m.outerPts, true);
+
+  // Cylinder
+  ctx.strokeStyle = cssVar('--col-cyl'); ctx.lineWidth = 1.5;
+  if (m.shape === 'circle') drawCircle(p.cylX, p.cylY, p.cylD / 2);
+  else drawPolyOutline(m.cornerPts, true);
+
+  // Refinement ring
+  if (m.refR) {
+    ctx.strokeStyle = cssVar('--col-ref'); ctx.lineWidth = 1; ctx.setLineDash([4, 3]);
+    drawCircle(p.cylX, p.cylY, m.refR);
+    ctx.setLineDash([]);
+  }
+
+  // Radial / split lines
+  ctx.strokeStyle = cssVar('--col-split'); ctx.lineWidth = 1;
+  for (let k = 0; k < m.N; k++) drawLine(m.cornerPts[k], m.outerPts[k]);
+
+  // Mesh preview
+  if (p.showMesh) drawMesh(m);
+
+  // Point markers
+  for (let k = 0; k < m.N; k++) {
+    drawPt(m.cornerPts[k], cssVar('--col-cyl'), `P${k+1}`);
+    drawPt(m.outerPts[k], cssVar('--col-domain'), `Q${k+1}`);
+    if (m.ringPts) drawPt(m.ringPts[k], cssVar('--col-ref'), `R${k+1}`);
+  }
+
+  drawFlowArrow();
+  document.getElementById('status').textContent =
+    `scale ${view.scale.toFixed(3)} px/unit   center (${view.cx.toFixed(2)}, ${view.cy.toFixed(2)})`;
+}
+
+function drawMesh(m) {
+  const p = params;
+  const nArc = Math.max(2, Math.min(p.nArc, 200));
+  const nRadInner = m.refR ? p.refNRad : p.nRad;
+  const progInner = m.refR ? p.refProg : p.prog;
+  const cIn  = cssVar('--col-mesh-in');
+  const cOut = cssVar('--col-mesh-out');
+
+  // --- Rectangular outer domain (always N=4 butterfly) ---
+  if (m.domainShape === 'rectangle') {
+    const N = m.N;
+    for (let k = 0; k < N; k++) {
+      const k1 = (k+1) % N;
+      const innerPts = (m.shape === 'circle')
+        ? sampleArcShort(p.cylX, p.cylY, m.rCyl,
+            Math.atan2(m.cornerPts[k].y - p.cylY, m.cornerPts[k].x - p.cylX),
+            Math.atan2(m.cornerPts[k1].y - p.cylY, m.cornerPts[k1].x - p.cylX),
+            nArc)
+        : sampleLine(m.cornerPts[k], m.cornerPts[k1], nArc);
+      const rectPts = sampleLine(m.outerPts[k], m.outerPts[k1], nArc);
+      if (m.refR) {
+        const midPts = sampleArcShort(p.cylX, p.cylY, m.refR,
+          Math.atan2(m.ringPts[k].y - p.cylY, m.ringPts[k].x - p.cylX),
+          Math.atan2(m.ringPts[k1].y - p.cylY, m.ringPts[k1].x - p.cylX),
+          nArc);
+        drawTransfiniteBlock(innerPts, midPts, nRadInner, progInner, cIn);
+        drawTransfiniteBlock(midPts, rectPts, p.nRad, p.prog, cOut);
+      } else {
+        drawTransfiniteBlock(innerPts, rectPts, p.nRad, p.prog, cIn);
+      }
+    }
+    return;
+  }
+
+  if (m.shape === 'circle') {
+    // N=2 two C-blocks
+    for (let side = -1; side <= 1; side += 2) {
+      const sideVec = { x: side * m.nx, y: side * m.ny };
+      const inR  = m.rCyl, outR = m.refR || m.R;
+      const inCx = p.cylX, inCy = p.cylY;
+      const outCx = m.refR ? p.cylX : p.domainCx;
+      const outCy = m.refR ? p.cylY : p.domainCy;
+      const pA = m.cornerPts[0], pB = m.cornerPts[1];
+      const qA = m.refR ? m.ringPts[0] : m.outerPts[0];
+      const qB = m.refR ? m.ringPts[1] : m.outerPts[1];
+      const innerPts = sampleArcThrough(inCx, inCy, inR, pA, pB, sideVec, nArc);
+      const outerPts = sampleArcThrough(outCx, outCy, outR, qA, qB, sideVec, nArc);
+      drawTransfiniteBlock(innerPts, outerPts, nRadInner, progInner, cIn);
+      if (m.refR) {
+        const innerPts2 = sampleArcThrough(p.cylX, p.cylY, m.refR, qA, qB, sideVec, nArc);
+        const outerPts2 = sampleArcThrough(p.domainCx, p.domainCy, m.R,
+          m.outerPts[0], m.outerPts[1], sideVec, nArc);
+        drawTransfiniteBlock(innerPts2, outerPts2, p.nRad, p.prog, cOut);
+      }
+    }
+  } else {
+    // N blocks, each between cornerPts[k]..cornerPts[k+1] and outerPts[k]..outerPts[k+1]
+    const N = m.N;
+    for (let k = 0; k < N; k++) {
+      const k1 = (k + 1) % N;
+      const innerPts = sampleLine(m.cornerPts[k], m.cornerPts[k1], nArc);
+      // Inner ring of the refinement or direct to outer domain
+      let outerPts;
+      if (m.refR) {
+        outerPts = sampleArcShort(p.cylX, p.cylY, m.refR,
+          Math.atan2(m.ringPts[k].y - p.cylY, m.ringPts[k].x - p.cylX),
+          Math.atan2(m.ringPts[k1].y - p.cylY, m.ringPts[k1].x - p.cylX),
+          nArc);
+      } else {
+        outerPts = sampleArcShort(p.domainCx, p.domainCy, m.R,
+          Math.atan2(m.outerPts[k].y - p.domainCy, m.outerPts[k].x - p.domainCx),
+          Math.atan2(m.outerPts[k1].y - p.domainCy, m.outerPts[k1].x - p.domainCx),
+          nArc);
+      }
+      drawTransfiniteBlock(innerPts, outerPts, nRadInner, progInner, cIn);
+      if (m.refR) {
+        const innerPts2 = sampleArcShort(p.cylX, p.cylY, m.refR,
+          Math.atan2(m.ringPts[k].y - p.cylY, m.ringPts[k].x - p.cylX),
+          Math.atan2(m.ringPts[k1].y - p.cylY, m.ringPts[k1].x - p.cylX),
+          nArc);
+        const outerPts2 = sampleArcShort(p.domainCx, p.domainCy, m.R,
+          Math.atan2(m.outerPts[k].y - p.domainCy, m.outerPts[k].x - p.domainCx),
+          Math.atan2(m.outerPts[k1].y - p.domainCy, m.outerPts[k1].x - p.domainCx),
+          nArc);
+        drawTransfiniteBlock(innerPts2, outerPts2, p.nRad, p.prog, cOut);
+      }
+    }
+  }
+}
+
+/* ========== .geo generation ========== */
+function buildGeo() {
+  const p = params;
+  const m = buildModel();
+  if (m.domainShape === 'rectangle') return buildGeoRectDom(p, m);
+  if (m.shape === 'circle') return buildGeoCircle(p, m);
+  return buildGeoPolygon(p, m);
+}
+
+/* ---- rectangular outer domain (circle or square cylinder, N=4) ---- */
+function buildGeoRectDom(p, m) {
+  const refine = !!m.refR;
+  const N = m.N;
+  const L = [];
+  L.push(`// Gmsh project created by Cylinder Mesh Creator on ${new Date().toString()}`);
+  L.push(`SetFactory("OpenCASCADE");`); L.push('');
+
+  const hc = p.hCyl, hf = p.hFar;
+  const hMid = Math.min(hf, Math.max(hc, (hc + hf) * 0.25));
+
+  // --- Points ---
+  let pTag = 1;
+  const cornerTag = [], outerTag = [], ringTag = [];
+  for (let k = 0; k < N; k++) {
+    cornerTag.push(pTag);
+    L.push(`Point(${pTag++}) = {${f(m.cornerPts[k].x)}, ${f(m.cornerPts[k].y)}, 0, ${f(hc)}};`);
+  }
+  for (let k = 0; k < N; k++) {
+    outerTag.push(pTag);
+    L.push(`Point(${pTag++}) = {${f(m.outerPts[k].x)}, ${f(m.outerPts[k].y)}, 0, ${f(hf)}};`);
+  }
+  const cylCTag = pTag;
+  L.push(`Point(${pTag++}) = {${f(p.cylX)}, ${f(p.cylY)}, 0, ${f(hf)}};`);
+  if (refine) for (let k = 0; k < N; k++) {
+    ringTag.push(pTag);
+    L.push(`Point(${pTag++}) = {${f(m.ringPts[k].x)}, ${f(m.ringPts[k].y)}, 0, ${f(hMid)}};`);
+  }
+  L.push('');
+
+  // --- Curves ---
+  let cTag = 1;
+  const cylCurveTag = [], rectSideTag = [], ringArcTag = [];
+  const radialTag = [], radialInTag = [], radialOutTag = [];
+
+  if (m.shape === 'circle') {
+    for (let k = 0; k < N; k++) {
+      const a = cornerTag[k], b = cornerTag[(k+1)%N];
+      cylCurveTag.push(cTag);
+      L.push(`Circle(${cTag++}) = {${a}, ${cylCTag}, ${b}};`);
+    }
+  } else {
+    for (let k = 0; k < N; k++) {
+      const a = cornerTag[k], b = cornerTag[(k+1)%N];
+      cylCurveTag.push(cTag);
+      L.push(`Line(${cTag++}) = {${a}, ${b}};`);
+    }
+  }
+  for (let k = 0; k < N; k++) {
+    const a = outerTag[k], b = outerTag[(k+1)%N];
+    rectSideTag.push(cTag);
+    L.push(`Line(${cTag++}) = {${a}, ${b}};`);
+  }
+  if (refine) {
+    for (let k = 0; k < N; k++) {
+      radialInTag.push(cTag);
+      L.push(`Line(${cTag++}) = {${cornerTag[k]}, ${ringTag[k]}};`);
+    }
+    for (let k = 0; k < N; k++) {
+      const a = ringTag[k], b = ringTag[(k+1)%N];
+      ringArcTag.push(cTag);
+      L.push(`Circle(${cTag++}) = {${a}, ${cylCTag}, ${b}};`);
+    }
+    for (let k = 0; k < N; k++) {
+      radialOutTag.push(cTag);
+      L.push(`Line(${cTag++}) = {${ringTag[k]}, ${outerTag[k]}};`);
+    }
+  } else {
+    for (let k = 0; k < N; k++) {
+      radialTag.push(cTag);
+      L.push(`Line(${cTag++}) = {${cornerTag[k]}, ${outerTag[k]}};`);
+    }
+  }
+  L.push('');
+
+  // --- Surfaces ---
+  let sTag = 1;
+  const allSurf = [];
+  if (refine) {
+    // Inner blocks: cyl → ring
+    for (let k = 0; k < N; k++) {
+      const k1 = (k+1)%N;
+      L.push(`Curve Loop(${sTag}) = {${cylCurveTag[k]}, ${radialInTag[k1]}, -${ringArcTag[k]}, -${radialInTag[k]}};`);
+      L.push(`Plane Surface(${sTag}) = {${sTag}};`);
+      allSurf.push(sTag); sTag++;
+    }
+    // Outer blocks: ring → rect
+    for (let k = 0; k < N; k++) {
+      const k1 = (k+1)%N;
+      L.push(`Curve Loop(${sTag}) = {${radialOutTag[k]}, ${rectSideTag[k]}, -${radialOutTag[k1]}, -${ringArcTag[k]}};`);
+      L.push(`Plane Surface(${sTag}) = {${sTag}};`);
+      allSurf.push(sTag); sTag++;
+    }
+  } else {
+    for (let k = 0; k < N; k++) {
+      const k1 = (k+1)%N;
+      L.push(`Curve Loop(${sTag}) = {${cylCurveTag[k]}, ${radialTag[k1]}, -${rectSideTag[k]}, -${radialTag[k]}};`);
+      L.push(`Plane Surface(${sTag}) = {${sTag}};`);
+      allSurf.push(sTag); sTag++;
+    }
+  }
+  L.push('');
+
+  // --- Physical groups (classify rect sides by midpoint . +X) ---
+  const inSides = [], outSides = [], farSides = [];
+  const TOL = 0.15;
+  for (let k = 0; k < N; k++) {
+    const k1 = (k+1)%N;
+    const mx = (m.outerPts[k].x + m.outerPts[k1].x) / 2 - p.domainCx;
+    const my = (m.outerPts[k].y + m.outerPts[k1].y) / 2 - p.domainCy;
+    const len = Math.hypot(mx, my) || 1;
+    const dot = mx / len;
+    if (dot > TOL) outSides.push(rectSideTag[k]);
+    else if (dot < -TOL) inSides.push(rectSideTag[k]);
+    else farSides.push(rectSideTag[k]);
+  }
+  let pid = 1;
+  if (inSides.length) L.push(`Physical Curve("${p.nameIn}", ${100 + pid++}) = {${inSides.join(', ')}};`);
+  if (outSides.length) L.push(`Physical Curve("${p.nameOut}", ${100 + pid++}) = {${outSides.join(', ')}};`);
+  if (farSides.length) L.push(`Physical Curve("${p.nameFar}", ${100 + pid++}) = {${farSides.join(', ')}};`);
+  L.push(`Physical Curve("${p.nameCyl}", ${100 + pid++}) = {${cylCurveTag.join(', ')}};`);
+  L.push(`Physical Surface("${p.nameFluid}", ${100 + pid++}) = {${allSurf.join(', ')}};`);
+  L.push('');
+
+  // --- Transfinite ---
+  if (p.transfinite) {
+    const allArc = [...cylCurveTag, ...rectSideTag, ...ringArcTag];
+    L.push(`Transfinite Curve {${allArc.join(', ')}} = ${p.nArc} Using Progression 1;`);
+    if (refine) {
+      L.push(`Transfinite Curve {${radialInTag.join(', ')}} = ${p.refNRad} Using Progression ${f(p.refProg)};`);
+      L.push(`Transfinite Curve {${radialOutTag.join(', ')}} = ${p.nRad} Using Progression ${f(p.prog)};`);
+    } else {
+      L.push(`Transfinite Curve {${radialTag.join(', ')}} = ${p.nRad} Using Progression ${f(p.prog)};`);
+    }
+  }
+  if (p.recombine) L.push(`Recombine Surface {${allSurf.join(', ')}};`);
+  if (p.transfinite) for (const s of allSurf) L.push(`Transfinite Surface {${s}};`);
+
+  if (p.elOrder && p.elOrder > 1) {
+    L.push(''); L.push(`Mesh.ElementOrder = ${p.elOrder};`);
+    L.push(`Mesh.HighOrderOptimize = 1;`);
+  }
+  return L.join('\n') + '\n';
+}
+
+/* ---- circle cylinder (N=2) ---- */
+function buildGeoCircle(p, m) {
+  const refine = !!m.refR;
+  const L = [];
+  L.push(`// Gmsh project created by Cylinder Mesh Creator on ${new Date().toString()}`);
+  L.push(`SetFactory("OpenCASCADE");`); L.push('');
+
+  const hc = p.hCyl, hf = p.hFar;
+  const hMid = Math.min(hf, Math.max(hc, (hc + hf) * 0.25));
+  L.push(`Point(1) = {${f(m.cornerPts[0].x)}, ${f(m.cornerPts[0].y)}, 0, ${f(hc)}};`);
+  L.push(`Point(2) = {${f(m.cornerPts[1].x)}, ${f(m.cornerPts[1].y)}, 0, ${f(hc)}};`);
+  L.push(`Point(3) = {${f(m.outerPts[0].x)}, ${f(m.outerPts[0].y)}, 0, ${f(hf)}};`);
+  L.push(`Point(4) = {${f(m.outerPts[1].x)}, ${f(m.outerPts[1].y)}, 0, ${f(hf)}};`);
+  L.push(`Point(5) = {${f(p.cylX)}, ${f(p.cylY)}, 0, ${f(hf)}};`);
+  if (!m.domCenterSame) L.push(`Point(6) = {${f(p.domainCx)}, ${f(p.domainCy)}, 0, ${f(hf)}};`);
+  const domC = m.domCenterSame ? 5 : 6;
+  if (refine) {
+    L.push(`Point(7) = {${f(m.ringPts[0].x)}, ${f(m.ringPts[0].y)}, 0, ${f(hMid)}};`);
+    L.push(`Point(8) = {${f(m.ringPts[1].x)}, ${f(m.ringPts[1].y)}, 0, ${f(hMid)}};`);
+  }
+  L.push('');
+  L.push(`Circle(1) = {2, 5, 1};`);
+  L.push(`Circle(2) = {1, 5, 2};`);
+  L.push(`Circle(3) = {3, ${domC}, 4};`);
+  L.push(`Circle(4) = {4, ${domC}, 3};`);
+  if (refine) {
+    L.push(`Line(5) = {1, 7};`);
+    L.push(`Line(6) = {2, 8};`);
+    L.push(`Circle(9) = {8, 5, 7};`);
+    L.push(`Circle(10) = {7, 5, 8};`);
+    L.push(`Line(11) = {7, 3};`);
+    L.push(`Line(12) = {8, 4};`);
+  } else {
+    L.push(`Line(5) = {1, 3};`); L.push(`Line(6) = {2, 4};`);
+  }
+  L.push('');
+  if (refine) {
+    L.push(`Curve Loop(1) = {5, -9, -6, 1};`);
+    L.push(`Plane Surface(1) = {1};`);
+    L.push(`Curve Loop(2) = {10, -6, -2, 5};`);
+    L.push(`Plane Surface(2) = {2};`);
+    L.push(`Curve Loop(3) = {11, -4, -12, 9};`);
+    L.push(`Plane Surface(3) = {3};`);
+    L.push(`Curve Loop(4) = {3, -12, -10, 11};`);
+    L.push(`Plane Surface(4) = {4};`);
+  } else {
+    L.push(`Curve Loop(1) = {5, -4, -6, 1};`); L.push(`Plane Surface(1) = {1};`);
+    L.push(`Curve Loop(2) = {3, -6, -2, 5};`); L.push(`Plane Surface(2) = {2};`);
+  }
+  L.push('');
+  L.push(`Physical Curve("${p.nameIn}", 7) = {4};`);
+  L.push(`Physical Curve("${p.nameOut}", 8) = {3};`);
+  L.push(`Physical Curve("${p.nameCyl}", 9) = {2, 1};`);
+  L.push(`Physical Surface("${p.nameFluid}", 10) = {${refine ? '1, 2, 3, 4' : '1, 2'}};`);
+  L.push('');
+  if (p.transfinite) {
+    if (refine) {
+      L.push(`Transfinite Curve {1, 2, 9, 10, 3, 4} = ${p.nArc} Using Progression 1;`);
+      L.push(`Transfinite Curve {5, 6} = ${p.refNRad} Using Progression ${f(p.refProg)};`);
+      L.push(`Transfinite Curve {11, 12} = ${p.nRad} Using Progression ${f(p.prog)};`);
+    } else {
+      L.push(`Transfinite Curve {4, 1, 2, 3} = ${p.nArc} Using Progression 1;`);
+      L.push(`Transfinite Curve {5, 6} = ${p.nRad} Using Progression ${f(p.prog)};`);
+    }
+  }
+  if (p.recombine) L.push(`Recombine Surface {${refine ? '1, 2, 3, 4' : '1, 2'}};`);
+  if (p.transfinite) {
+    (refine ? [1,2,3,4] : [1,2]).forEach(s => L.push(`Transfinite Surface {${s}};`));
+  }
+  if (p.elOrder && p.elOrder > 1) {
+    L.push(''); L.push(`Mesh.ElementOrder = ${p.elOrder};`);
+    L.push(`Mesh.HighOrderOptimize = 1;`);
+  }
+  return L.join('\n') + '\n';
+}
+
+/* ---- polygon cylinder (N sides) ---- */
+function buildGeoPolygon(p, m) {
+  const refine = !!m.refR;
+  const N = m.N;
+  const L = [];
+  L.push(`// Gmsh project created by Cylinder Mesh Creator on ${new Date().toString()}`);
+  L.push(`SetFactory("OpenCASCADE");`); L.push('');
+
+  const hc = p.hCyl, hf = p.hFar;
+  const hMid = Math.min(hf, Math.max(hc, (hc + hf) * 0.25));
+
+  // Tag assignment
+  let pTag = 1;
+  const cornerTag = [], outerTag = [], ringTag = [];
+  for (let k = 0; k < N; k++) {
+    cornerTag.push(pTag);
+    L.push(`Point(${pTag++}) = {${f(m.cornerPts[k].x)}, ${f(m.cornerPts[k].y)}, 0, ${f(hc)}};`);
+  }
+  for (let k = 0; k < N; k++) {
+    outerTag.push(pTag);
+    L.push(`Point(${pTag++}) = {${f(m.outerPts[k].x)}, ${f(m.outerPts[k].y)}, 0, ${f(hf)}};`);
+  }
+  const cylCTag = pTag;
+  L.push(`Point(${pTag++}) = {${f(p.cylX)}, ${f(p.cylY)}, 0, ${f(hf)}};`);
+  let domCTag = cylCTag;
+  if (!m.domCenterSame) {
+    domCTag = pTag;
+    L.push(`Point(${pTag++}) = {${f(p.domainCx)}, ${f(p.domainCy)}, 0, ${f(hf)}};`);
+  }
+  if (refine) for (let k = 0; k < N; k++) {
+    ringTag.push(pTag);
+    L.push(`Point(${pTag++}) = {${f(m.ringPts[k].x)}, ${f(m.ringPts[k].y)}, 0, ${f(hMid)}};`);
+  }
+  L.push('');
+
+  let cTag = 1;
+  const sideTag = [], outerArcTag = [], ringArcTag = [];
+  const radialTag = [], radialInTag = [], radialOutTag = [];
+  for (let k = 0; k < N; k++) {
+    const a = cornerTag[k], b = cornerTag[(k+1)%N];
+    sideTag.push(cTag);
+    L.push(`Line(${cTag++}) = {${a}, ${b}};`);
+  }
+  for (let k = 0; k < N; k++) {
+    const a = outerTag[k], b = outerTag[(k+1)%N];
+    outerArcTag.push(cTag);
+    L.push(`Circle(${cTag++}) = {${a}, ${domCTag}, ${b}};`);
+  }
+  if (refine) {
+    for (let k = 0; k < N; k++) {
+      radialInTag.push(cTag);
+      L.push(`Line(${cTag++}) = {${cornerTag[k]}, ${ringTag[k]}};`);
+    }
+    for (let k = 0; k < N; k++) {
+      const a = ringTag[k], b = ringTag[(k+1)%N];
+      ringArcTag.push(cTag);
+      L.push(`Circle(${cTag++}) = {${a}, ${cylCTag}, ${b}};`);
+    }
+    for (let k = 0; k < N; k++) {
+      radialOutTag.push(cTag);
+      L.push(`Line(${cTag++}) = {${ringTag[k]}, ${outerTag[k]}};`);
+    }
+  } else {
+    for (let k = 0; k < N; k++) {
+      radialTag.push(cTag);
+      L.push(`Line(${cTag++}) = {${cornerTag[k]}, ${outerTag[k]}};`);
+    }
+  }
+  L.push('');
+
+  let sTag = 1;
+  const innerSurf = [], outerSurf = [], allSurf = [];
+  if (refine) {
+    for (let k = 0; k < N; k++) {
+      const k1 = (k+1)%N;
+      L.push(`Curve Loop(${sTag}) = {${sideTag[k]}, ${radialInTag[k1]}, -${ringArcTag[k]}, -${radialInTag[k]}};`);
+      L.push(`Plane Surface(${sTag}) = {${sTag}};`);
+      innerSurf.push(sTag); allSurf.push(sTag); sTag++;
+    }
+    for (let k = 0; k < N; k++) {
+      const k1 = (k+1)%N;
+      L.push(`Curve Loop(${sTag}) = {${radialOutTag[k]}, ${outerArcTag[k]}, -${radialOutTag[k1]}, -${ringArcTag[k]}};`);
+      L.push(`Plane Surface(${sTag}) = {${sTag}};`);
+      outerSurf.push(sTag); allSurf.push(sTag); sTag++;
+    }
+  } else {
+    for (let k = 0; k < N; k++) {
+      const k1 = (k+1)%N;
+      L.push(`Curve Loop(${sTag}) = {${sideTag[k]}, ${radialTag[k1]}, -${outerArcTag[k]}, -${radialTag[k]}};`);
+      L.push(`Plane Surface(${sTag}) = {${sTag}};`);
+      allSurf.push(sTag); sTag++;
+    }
+  }
+  L.push('');
+
+  // Classify outer arcs by midpoint direction vs fixed flow axis (+X)
+  const ux = 1, uy = 0;
+  const inArcs = [], outArcs = [], farArcs = [];
+  const TOL = 0.15;
+  for (let k = 0; k < N; k++) {
+    const k1 = (k+1)%N;
+    const mx = (m.outerPts[k].x + m.outerPts[k1].x) / 2 - p.domainCx;
+    const my = (m.outerPts[k].y + m.outerPts[k1].y) / 2 - p.domainCy;
+    const len = Math.hypot(mx, my) || 1;
+    const dot = (mx * ux + my * uy) / len;
+    if (dot > TOL) outArcs.push(outerArcTag[k]);
+    else if (dot < -TOL) inArcs.push(outerArcTag[k]);
+    else farArcs.push(outerArcTag[k]);
+  }
+  let pid = 1;
+  if (inArcs.length) L.push(`Physical Curve("${p.nameIn}", ${100 + pid++}) = {${inArcs.join(', ')}};`);
+  if (outArcs.length) L.push(`Physical Curve("${p.nameOut}", ${100 + pid++}) = {${outArcs.join(', ')}};`);
+  if (farArcs.length) L.push(`Physical Curve("${p.nameFar}", ${100 + pid++}) = {${farArcs.join(', ')}};`);
+  L.push(`Physical Curve("${p.nameCyl}", ${100 + pid++}) = {${sideTag.join(', ')}};`);
+  L.push(`Physical Surface("${p.nameFluid}", ${100 + pid++}) = {${allSurf.join(', ')}};`);
+  L.push('');
+
+  if (p.transfinite) {
+    const arcCurves = [...sideTag, ...outerArcTag, ...ringArcTag];
+    L.push(`Transfinite Curve {${arcCurves.join(', ')}} = ${p.nArc} Using Progression 1;`);
+    if (refine) {
+      L.push(`Transfinite Curve {${radialInTag.join(', ')}} = ${p.refNRad} Using Progression ${f(p.refProg)};`);
+      L.push(`Transfinite Curve {${radialOutTag.join(', ')}} = ${p.nRad} Using Progression ${f(p.prog)};`);
+    } else {
+      L.push(`Transfinite Curve {${radialTag.join(', ')}} = ${p.nRad} Using Progression ${f(p.prog)};`);
+    }
+  }
+  if (p.recombine) L.push(`Recombine Surface {${allSurf.join(', ')}};`);
+  if (p.transfinite) for (const s of allSurf) L.push(`Transfinite Surface {${s}};`);
+
+  if (p.elOrder && p.elOrder > 1) {
+    L.push(''); L.push(`Mesh.ElementOrder = ${p.elOrder};`);
+    L.push(`Mesh.HighOrderOptimize = 1;`);
+  }
+  return L.join('\n') + '\n';
+}
+
+function f(n) {
+  if (!isFinite(n)) return '0';
+  return Number(n).toFixed(10).replace(/0+$/, '').replace(/\.$/, '.0');
+}
+
+/* ========== Export / Import ========== */
+document.getElementById('btnExport').addEventListener('click', () => {
+  const geo = buildGeo();
+  const blob = new Blob([geo], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const shapeTag = params.cylShape === 'circle' ? 'circ'
+    : params.cylShape === 'square' ? 'sq' : `poly${params.cylN}`;
+  const domTag = params.domainShape === 'rectangle'
+    ? `rect${params.rectW}x${params.rectH}` : `D${params.domainR}`;
+  const refTag = params.refEnable ? `_ref${params.refR}` : '';
+  a.download = `${shapeTag}_NC${params.nArc}_np${params.elOrder}_${domTag}${refTag}.geo`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
+document.getElementById('btnImport').addEventListener('click',
+  () => document.getElementById('fileInput').click());
+document.getElementById('fileInput').addEventListener('change', async (e) => {
+  const f = e.target.files[0];
+  if (!f) return;
+  const text = await f.text();
+  parseGeo(text);
+  syncInputs();
+  onParamChange();
+});
+
+function parseGeo(text) {
+  const pts = {};
+  const reP = /Point\((\d+)\)\s*=\s*\{\s*([-\d.eE+]+)\s*,\s*([-\d.eE+]+)\s*,\s*[-\d.eE+]+\s*,\s*([-\d.eE+]+)\s*\}/g;
+  let mt;
+  while ((mt = reP.exec(text)) !== null) {
+    pts[+mt[1]] = { x: +mt[2], y: +mt[3], h: +mt[4] };
+  }
+  // Heuristic: detect polygon export by presence of many cyl points and Line (not Circle) between them.
+  // For v1, parser targets the circle-cylinder layout only. Polygon import is TBD.
+  if (pts[5]) { params.cylX = pts[5].x; params.cylY = pts[5].y; }
+  if (pts[1] && pts[5]) {
+    const dx = pts[1].x - pts[5].x, dy = pts[1].y - pts[5].y;
+    // Only update if topology looks like the circle case (points 1..4 around one center)
+    if (pts[2] && pts[3] && pts[4]) {
+      const d12 = Math.hypot(pts[2].x - pts[5].x, pts[2].y - pts[5].y);
+      if (Math.abs(Math.hypot(dx, dy) - d12) < 1e-6 * Math.max(1, d12)) {
+        params.cylShape = 'circle';
+        params.cylD = 2 * Math.hypot(dx, dy);
+        params.cylAngle = (Math.atan2(dy, dx) * 180 / Math.PI) - 90;
+      }
+    }
+  }
+  if (pts[3] && pts[5]) {
+    const dx = pts[3].x - pts[5].x, dy = pts[3].y - pts[5].y;
+    params.domainR = Math.hypot(dx, dy);
+  }
+  if (pts[7] && pts[5]) {
+    const dx = pts[7].x - pts[5].x, dy = pts[7].y - pts[5].y;
+    params.refEnable = true;
+    params.refR = Math.hypot(dx, dy);
+  } else {
+    params.refEnable = false;
+  }
+  if (pts[1]) params.hCyl = pts[1].h;
+  if (pts[3]) params.hFar = pts[3].h;
+
+  const reTC = /Transfinite\s+Curve\s*\{([^}]+)\}\s*=\s*(\d+)\s*(?:Using\s+Progression\s+([-\d.eE+]+))?/g;
+  while ((mt = reTC.exec(text)) !== null) {
+    const curves = mt[1].split(',').map(s => parseInt(s.trim(), 10));
+    const n = +mt[2];
+    const prog = mt[3] ? +mt[3] : 1;
+    if (curves.some(c => [1,2,3,4,9,10].includes(c))) params.nArc = n;
+    if (curves.includes(5) || curves.includes(6)) {
+      if (params.refEnable) { params.refNRad = n; params.refProg = prog; }
+      else { params.nRad = n; params.prog = prog; }
+    }
+    if (curves.includes(11) || curves.includes(12)) { params.nRad = n; params.prog = prog; }
+  }
+  const mo = /Mesh\.ElementOrder\s*=\s*(\d+)/.exec(text);
+  if (mo) params.elOrder = +mo[1];
+  params.recombine = /Recombine\s+Surface/.test(text);
+  params.transfinite = /Transfinite\s+Surface/.test(text);
+
+  const reName = /Physical\s+Curve\("([^"]+)",\s*\d+\)\s*=\s*\{([^}]+)\}/g;
+  while ((mt = reName.exec(text)) !== null) {
+    const name = mt[1], ids = mt[2].split(',').map(s => parseInt(s.trim(), 10));
+    if (ids.includes(4)) params.nameIn = name;
+    if (ids.includes(3)) params.nameOut = name;
+    if (ids.includes(1) || ids.includes(2)) params.nameCyl = name;
+  }
+  const mf = /Physical\s+Surface\("([^"]+)"/.exec(text);
+  if (mf) params.nameFluid = mf[1];
+}
+
+function syncInputs() {
+  const map = {
+    domainShape: 'domainShape', domainR: 'domainR', rectW: 'rectW', rectH: 'rectH',
+    domainCx: 'domainCx', domainCy: 'domainCy',
+    cylShape: 'cylShape', cylD: 'cylD', cylX: 'cylX', cylY: 'cylY', cylN: 'cylN', cylAngle: 'cylAngle',
+    nArc: 'nArc', nRad: 'nRad', prog: 'prog', hCyl: 'hCyl', hFar: 'hFar',
+    refEnable: 'refEnable', refR: 'refR', refNRad: 'refNRad', refProg: 'refProg',
+    elOrder: 'elOrder', recombine: 'recombine', transfinite: 'transfinite',
+    nameIn: 'nameIn', nameOut: 'nameOut', nameFar: 'nameFar',
+    nameCyl: 'nameCyl', nameFluid: 'nameFluid',
+  };
+  for (const [id, key] of Object.entries(map)) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    if (el.type === 'checkbox') el.checked = !!params[key];
+    else el.value = params[key];
+  }
+  updateSidesVisibility();
+  updateDomainVisibility();
+}
+
+/* ========== Angle periodicity hint ========== */
+function polygonN() {
+  if (params.cylShape === 'square') return 4;
+  if (params.cylShape === 'polygon') return Math.max(3, Math.round(params.cylN));
+  return null; // circle / not applicable
+}
+function updateAngleHint() {
+  const el = document.getElementById('angleHint');
+  if (!el) return;
+  const N = polygonN();
+  if (N === null) {
+    el.textContent = '';
+    el.style.color = 'var(--muted)';
+    return;
+  }
+  const period = 360 / N;
+  const a = Number(params.cylAngle) || 0;
+  const reduced = ((a % period) + period) % period;
+  const equiv = Math.abs(a - reduced) > 1e-6;
+  // Clear previous children
+  el.innerHTML = '';
+  const msg = document.createElement('span');
+  if (equiv) {
+    msg.textContent = `≡ ${reduced.toFixed(2).replace(/\.?0+$/, '')}° (period ${period}° for N=${N})`;
+    msg.style.color = 'var(--col-warn)';
+  } else {
+    msg.textContent = `Rotational period ${period}° (N=${N}).`;
+    msg.style.color = 'var(--muted)';
+  }
+  el.appendChild(msg);
+  if (equiv) {
+    const btn = document.createElement('button');
+    btn.textContent = 'Reduce';
+    btn.style.padding = '1px 6px';
+    btn.style.fontSize = '11px';
+    btn.addEventListener('click', () => {
+      params.cylAngle = reduced;
+      document.getElementById('cylAngle').value = reduced;
+      onParamChange();
+    });
+    el.appendChild(btn);
+  }
+}
+
+/* ========== Glue ========== */
+function onParamChange() {
+  draw();
+  document.getElementById('preview').value = buildGeo();
+  updateAngleHint();
+}
+
+updateSidesVisibility();
+updateDomainVisibility();
+resize();
+fitView('domain');
+onParamChange();
+</script>
+</body>
+</html>
